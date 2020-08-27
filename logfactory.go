@@ -19,6 +19,6 @@ func (fac *LoggerFactory) GetLogger(o interface{}) Logger {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	path := t.PkgPath()
-
+	//path := t.PkgPath()
+	return nil
 }

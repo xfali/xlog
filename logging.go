@@ -65,11 +65,11 @@ var gLogTag = map[int]string{
 type LoggingOpt func(l *Logging)
 
 type Logging struct {
-	timeFormatter   func(t time.Time) string
-	headerFormatter func(writer io.Writer, level, depth int, tags []string)
-	colorFlag       int
-	fileFlag        int
-	fatalNoTrace    bool
+	timeFormatter func(t time.Time) string
+	formatter     func(writer io.Writer, level, depth int, tag string, info string)
+	colorFlag     int
+	fileFlag      int
+	fatalNoTrace  bool
 
 	level int
 
@@ -98,7 +98,7 @@ func NewLogging(opts ...LoggingOpt) *Logging {
 			return bytes.NewBuffer(nil)
 		}},
 	}
-	ret.headerFormatter = ret.formatHeader
+	ret.formatter = ret.format
 
 	for _, v := range opts {
 		v(ret)
@@ -106,7 +106,7 @@ func NewLogging(opts ...LoggingOpt) *Logging {
 	return ret
 }
 
-func (l *Logging) formatHeader(writer io.Writer, level, depth int, tags []string) {
+func (l *Logging) format(writer io.Writer, level, depth int, tag string, log string) {
 	var (
 		file string
 		line int
@@ -133,8 +133,13 @@ func (l *Logging) formatHeader(writer io.Writer, level, depth int, tags []string
 		file = shortFile(file)
 	}
 
-	fmt.Fprintf(writer,"%s [%s%s%s] [%s:%d] ",
-		l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line)
+	if tag != "" {
+		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] [%s] %s ",
+			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, tag, log)
+	} else {
+		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] %s ",
+			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, log)
+	}
 }
 
 func selectLevelColor(level int) string {
@@ -148,43 +153,54 @@ func selectLevelColor(level int) string {
 	return ""
 }
 
-func (l *Logging) Logf(level int, depth int, tags []string, format string, args ...interface{}) {
+func (l *Logging) Logf(level int, depth int, tag string, format string, args ...interface{}) {
 	if l.level > level {
 		return
 	}
 
-	buf := l.getBuffer()
-	l.headerFormatter(buf, level, depth, tags)
-	fmt.Fprintf(buf, format, args...)
-	if buf.Bytes()[buf.Len()-1] != '\n' {
-		buf.WriteByte('\n')
+	length := len(format)
+	if length > 0 {
+		if format[length-1] != '\n' {
+			format = format + "\n"
+		}
+	}
+	logInfo := fmt.Sprintf(format, args...)
+	w := l.selectWriter(level)
+	l.formatter(w, level, depth, tag, logInfo)
+
+	if level >= FATAL {
+		l.processFatal(w)
 	}
 
-	l.output(level, buf)
+	//l.output(level, buf)
 }
 
-func (l *Logging) Log(level int, depth int, tags []string, args ...interface{}) {
+func (l *Logging) Log(level int, depth int, tag string, args ...interface{}) {
 	if l.level > level {
 		return
 	}
 
-	buf := l.getBuffer()
-	l.headerFormatter(buf, level, depth, tags)
-	fmt.Fprint(buf, args...)
+	logInfo := fmt.Sprint(args...)
+	w := l.selectWriter(level)
+	l.formatter(w, level, depth, tag, logInfo)
 
-	l.output(level, buf)
+	if level >= FATAL {
+		l.processFatal(w)
+	}
 }
 
-func (l *Logging) Logln(level int, depth int, tags []string, args ...interface{}) {
+func (l *Logging) Logln(level int, depth int, tag string, args ...interface{}) {
 	if l.level > level {
 		return
 	}
 
-	buf := l.getBuffer()
-	l.headerFormatter(buf, level, depth, tags)
-	fmt.Fprintln(buf, args...)
+	logInfo := fmt.Sprintln(args...)
+	w := l.selectWriter(level)
+	l.formatter(w, level, depth, tag, logInfo)
 
-	l.output(level, buf)
+	if level >= FATAL {
+		l.processFatal(w)
+	}
 }
 
 func (l *Logging) getBuffer() *bytes.Buffer {
@@ -204,20 +220,28 @@ func (l *Logging) putBuffer(buf *bytes.Buffer) {
 	l.bufPool.Put(buf)
 }
 
-func (l *Logging) output(level int, buf *bytes.Buffer) {
-	if level >= FATAL {
-		if !l.fatalNoTrace {
-			trace := stacks(true)
-			buf.WriteString("\n")
-			buf.Write(trace)
-		}
-		l.selectWriter(level).Write(buf.Bytes())
-		os.Exit(-1)
-	} else {
-		l.selectWriter(level).Write(buf.Bytes())
+func (l *Logging) processFatal(writer io.Writer) {
+	if !l.fatalNoTrace {
+		trace := stacks(true)
+		writer.Write(trace)
 	}
-	l.putBuffer(buf)
+	os.Exit(-1)
 }
+
+//func (l *Logging) output(level int) {
+//	if level >= FATAL {
+//		if !l.fatalNoTrace {
+//			trace := stacks(true)
+//			buf.WriteString("\n")
+//			buf.Write(trace)
+//		}
+//		l.selectWriter(level).Write(buf.Bytes())
+//		os.Exit(-1)
+//	} else {
+//		l.selectWriter(level).Write(buf.Bytes())
+//	}
+//	l.putBuffer(buf)
+//}
 
 func (l *Logging) selectWriter(level int) io.Writer {
 	w := l.writers[level]
@@ -265,9 +289,9 @@ func SetTimeFormatter(f func(t time.Time) string) func(*Logging) {
 	}
 }
 
-func SetHeaderFormatter(f func(writer io.Writer, level, depth int, tags []string)) func(*Logging) {
+func SetHeaderFormatter(f func(writer io.Writer, level, depth int, tag, log string)) func(*Logging) {
 	return func(logging *Logging) {
-		logging.headerFormatter = f
+		logging.formatter = f
 	}
 }
 
