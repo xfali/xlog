@@ -5,20 +5,44 @@
 
 package xlog
 
-import "reflect"
+import (
+	"reflect"
+	"sync/atomic"
+)
 
 type LoggerFactory struct {
-	logging *Logging
+	value   atomic.Value
 }
 
-func (fac *LoggerFactory) GetLogger(o interface{}) Logger {
-	if o == nil {
-		return NewLogger(fac.logging)
+var defaultFactory = NewFactory()
+
+func NewFactory(opts ...LoggingOpt) *LoggerFactory {
+	ret := &LoggerFactory{}
+	ret.value.Store(NewLogging(opts...))
+	return ret
+}
+
+func ResetFactory(logging *Logging) {
+	defaultFactory.Reset(logging)
+}
+
+func GetLogger(o ...interface{}) Logger {
+	return defaultFactory.GetLogger(o...)
+}
+
+func (fac *LoggerFactory) GetLogger(o ...interface{}) Logger {
+	if len(o) == 0 {
+		return NewLogger(fac.value.Load().(*Logging))
+	} else {
+		t := reflect.TypeOf(o[0])
+		if t.Kind() == reflect.String {
+			return NewLogger(fac.value.Load().(*Logging), o[0].(string))
+		}
+		return NewLogger(fac.value.Load().(*Logging), t.String())
 	}
-	t := reflect.TypeOf(o)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	//path := t.PkgPath()
-	return nil
+}
+
+func (fac *LoggerFactory) Reset(logging *Logging) *LoggerFactory {
+	fac.value.Store(logging)
+	return fac
 }

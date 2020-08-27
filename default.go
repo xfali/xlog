@@ -12,7 +12,7 @@ type xlog struct {
 }
 
 func NewLogger(logging *Logging, tag ...string) Logger {
-	return newLogger(logging)
+	return newLogger(logging, tag...)
 }
 
 func newLogger(logging *Logging, tag ...string) *xlog {
@@ -25,6 +25,11 @@ func newLogger(logging *Logging, tag ...string) *xlog {
 		depth:   1,
 		tag:     t,
 	}
+}
+
+func (l *xlog) WithName(name string) Logger {
+	l.tag = name
+	return l
 }
 
 func (l *xlog) Debug(args ...interface{}) {

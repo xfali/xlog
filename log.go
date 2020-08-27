@@ -42,5 +42,6 @@ type Logger interface {
 	Error
 	Fatal
 
+	WithName(name string) Logger
 	NewDepth(depth int) Logger
 }
