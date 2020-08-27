@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestLogf(t *testing.T) {
+func TestLoggingf(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l.Logf(xlog.DEBUG, 0, "", "DEBUG test\n")
@@ -20,7 +20,7 @@ func TestLogf(t *testing.T) {
 	l.Logf(xlog.FATAL, 0, "", "FATAL test\n")
 }
 
-func TestLog(t *testing.T) {
+func TestLogging(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l.Log(xlog.DEBUG, 0, "", "DEBUG", " test")
@@ -30,7 +30,7 @@ func TestLog(t *testing.T) {
 	l.Log(xlog.FATAL, 0, "", "FATAL", " test")
 }
 
-func TestLogln(t *testing.T) {
+func TestLoggingln(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l.Logln(xlog.DEBUG, 0, "", "DEBUG", " test")

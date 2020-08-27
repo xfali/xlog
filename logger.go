@@ -5,42 +5,42 @@
 
 package xlog
 
-type Debug interface {
+type LogDebug interface {
 	Debug(args ...interface{})
 	Debugln(args ...interface{})
 	Debugf(fmt string, args ...interface{})
 }
 
-type Info interface {
+type LogInfo interface {
 	Info(args ...interface{})
 	Infoln(args ...interface{})
 	Infof(fmt string, args ...interface{})
 }
 
-type Warn interface {
+type LogWarn interface {
 	Warn(args ...interface{})
 	Warnln(args ...interface{})
 	Warnf(fmt string, args ...interface{})
 }
 
-type Error interface {
+type LogError interface {
 	Error(args ...interface{})
 	Errorln(args ...interface{})
 	Errorf(fmt string, args ...interface{})
 }
 
-type Fatal interface {
+type LogFatal interface {
 	Fatal(args ...interface{})
 	Fatalln(args ...interface{})
 	Fatalf(fmt string, args ...interface{})
 }
 
 type Logger interface {
-	Debug
-	Info
-	Warn
-	Error
-	Fatal
+	LogDebug
+	LogInfo
+	LogWarn
+	LogError
+	LogFatal
 
 	WithName(name string) Logger
 	WithDepth(depth int) Logger
