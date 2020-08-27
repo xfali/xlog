@@ -20,8 +20,8 @@ func TestDefaultInfo(t *testing.T) {
 func TestDefaultDepth(t *testing.T) {
 	l := xlog.NewLogger(xlog.NewLogging())
 	l.Infoln("1")
-	l = l.NewDepth(1)
+	l = l.WithDepth(1)
 	l.Infoln("2")
-	l = l.NewDepth(-2)
+	l = l.WithDepth(-2)
 	l.Infoln("3")
 }

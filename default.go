@@ -27,11 +27,6 @@ func newLogger(logging *Logging, tag ...string) *xlog {
 	}
 }
 
-func (l *xlog) WithName(name string) Logger {
-	l.tag = name
-	return l
-}
-
 func (l *xlog) Debug(args ...interface{}) {
 	l.logging.Log(DEBUG, l.depth, l.tag, args...)
 }
@@ -92,12 +87,23 @@ func (l *xlog) Fatalf(fmt string, args ...interface{}) {
 	l.logging.Logf(FATAL, l.depth, l.tag, fmt, args...)
 }
 
-func (l *xlog) NewDepth(depth int) Logger {
+func (l *xlog) WithName(name string) Logger {
 	if l == nil {
 		return nil
 	}
-	ret := newLogger(l.logging)
+	ret := newLogger(l.logging, name)
+	ret.depth = l.depth
+
+	return ret
+}
+
+func (l *xlog) WithDepth(depth int) Logger {
+	if l == nil {
+		return nil
+	}
+	ret := newLogger(l.logging, l.tag)
 	ret.depth += depth
 
 	return ret
 }
+

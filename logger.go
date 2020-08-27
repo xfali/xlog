@@ -43,5 +43,5 @@ type Logger interface {
 	Fatal
 
 	WithName(name string) Logger
-	NewDepth(depth int) Logger
+	WithDepth(depth int) Logger
 }
