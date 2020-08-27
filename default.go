@@ -106,4 +106,3 @@ func (l *xlog) WithDepth(depth int) Logger {
 
 	return ret
 }
-
