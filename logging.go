@@ -28,9 +28,9 @@ const (
 )
 
 const (
-	autoColor = iota
-	disableColor
-	forceColor
+	AutoColor = iota
+	DisableColor
+	ForceColor
 )
 
 var (
@@ -66,7 +66,6 @@ type LoggingOpt func(l *Logging)
 type Logging struct {
 	timeFormatter   func(t time.Time) string
 	headerFormatter func(level, depth int) string
-	tag             string
 	colorFlag       int
 	fileFlag        int
 	fatalNoTrace    bool
@@ -79,7 +78,7 @@ type Logging struct {
 func NewLogging(opts ...LoggingOpt) *Logging {
 	ret := &Logging{
 		timeFormatter: TimeFormat,
-		colorFlag:     autoColor,
+		colorFlag:     AutoColor,
 		fileFlag:      ShortFile,
 		fatalNoTrace:  false,
 		level:         INFO,
@@ -116,7 +115,7 @@ func (l *Logging) formatHeader(level, depth int) string {
 		lvColor    string
 		resetColor string
 	)
-	if l.colorFlag == autoColor {
+	if l.colorFlag == AutoColor {
 		lvColor = selectLevelColor(level)
 		resetColor = ColorReset
 	}
@@ -127,13 +126,8 @@ func (l *Logging) formatHeader(level, depth int) string {
 		file = shortFile(file)
 	}
 
-	if l.tag != "" {
-		return fmt.Sprintf("%s [%s%s%s] [%s:%d] [%s] ",
-			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, l.tag)
-	} else {
-		return fmt.Sprintf("%s [%s%s%s] [%s:%d] ",
-			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line)
-	}
+	return fmt.Sprintf("%s [%s%s%s] [%s:%d] ",
+		l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line)
 }
 
 func selectLevelColor(level int) string {
@@ -246,12 +240,6 @@ func SetTimeFormatter(f func(t time.Time) string) func(*Logging) {
 func SetHeaderFormatter(f func(level, depth int) string) func(*Logging) {
 	return func(logging *Logging) {
 		logging.headerFormatter = f
-	}
-}
-
-func SetName(name string) func(*Logging) {
-	return func(logging *Logging) {
-		logging.tag = name
 	}
 }
 

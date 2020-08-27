@@ -5,66 +5,88 @@
 
 package xlog
 
-type XLog struct {
-
+type xlog struct {
+	logging *Logging
+	depth   int
 }
 
-func (l *XLog) Debug(args ...interface{}) {
-
+func NewLogger(logging *Logging) Logger {
+	return newLogger(logging)
 }
 
-func (l *XLog) Debugln(args ...interface{}) {
-
+func newLogger(logging *Logging) *xlog {
+	return &xlog{
+		logging: logging,
+		depth:   1,
+	}
 }
 
-func (l *XLog) Debugf(fmt string, args ...interface{}) {
-
+func (l *xlog) Debug(args ...interface{}) {
+	l.logging.Log(DEBUG, l.depth, args...)
 }
 
-func (l *XLog) Info(args ...interface{}) {
-
+func (l *xlog) Debugln(args ...interface{}) {
+	l.logging.Logln(DEBUG, l.depth, args...)
 }
 
-func (l *XLog) Infoln(args ...interface{}) {
-
+func (l *xlog) Debugf(fmt string, args ...interface{}) {
+	l.logging.Logf(DEBUG, l.depth, fmt, args...)
 }
 
-func (l *XLog) Infof(fmt string, args ...interface{}) {
-
+func (l *xlog) Info(args ...interface{}) {
+	l.logging.Log(INFO, l.depth, args...)
 }
 
-func (l *XLog) Warn(args ...interface{}) {
-
+func (l *xlog) Infoln(args ...interface{}) {
+	l.logging.Logln(INFO, l.depth, args...)
 }
 
-func (l *XLog) Warnln(args ...interface{}) {
-
+func (l *xlog) Infof(fmt string, args ...interface{}) {
+	l.logging.Logf(INFO, l.depth, fmt, args...)
 }
 
-func (l *XLog) Warnf(fmt string, args ...interface{}) {
-
+func (l *xlog) Warn(args ...interface{}) {
+	l.logging.Log(WARN, l.depth, args...)
 }
 
-func (l *XLog) Error(args ...interface{}) {
-
+func (l *xlog) Warnln(args ...interface{}) {
+	l.logging.Logln(WARN, l.depth, args...)
 }
 
-func (l *XLog) Errorln(args ...interface{}) {
-
+func (l *xlog) Warnf(fmt string, args ...interface{}) {
+	l.logging.Logf(WARN, l.depth, fmt, args...)
 }
 
-func (l *XLog) Errorf(fmt string, args ...interface{}) {
-
+func (l *xlog) Error(args ...interface{}) {
+	l.logging.Log(ERROR, l.depth, args...)
 }
 
-func (l *XLog) Fatal(args ...interface{}) {
-
+func (l *xlog) Errorln(args ...interface{}) {
+	l.logging.Logln(ERROR, l.depth, args...)
 }
 
-func (l *XLog) Fatalln(args ...interface{}) {
-
+func (l *xlog) Errorf(fmt string, args ...interface{}) {
+	l.logging.Logf(ERROR, l.depth, fmt, args...)
 }
 
-func (l *XLog) Fatalf(fmt string, args ...interface{}) {
+func (l *xlog) Fatal(args ...interface{}) {
+	l.logging.Log(FATAL, l.depth, args...)
+}
 
+func (l *xlog) Fatalln(args ...interface{}) {
+	l.logging.Logln(FATAL, l.depth, args...)
+}
+
+func (l *xlog) Fatalf(fmt string, args ...interface{}) {
+	l.logging.Logf(FATAL, l.depth, fmt, args...)
+}
+
+func (l *xlog) NewDepth(depth int) Logger {
+	if l == nil {
+		return nil
+	}
+	ret := newLogger(l.logging)
+	ret.depth += depth
+
+	return ret
 }

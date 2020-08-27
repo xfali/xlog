@@ -41,4 +41,6 @@ type Logger interface {
 	Warn
 	Error
 	Fatal
+
+	NewDepth(depth int) Logger
 }
