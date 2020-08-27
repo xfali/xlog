@@ -78,21 +78,31 @@ type Logging struct {
 	bufPool sync.Pool
 }
 
+var (
+	ColorFlag     = AutoColor
+	PrintFileFlag = ShortFile
+	FatalNoTrace  = false
+	Level         = INFO
+	Writers       = map[int]io.Writer{
+		DEBUG: os.Stdout,
+		INFO:  os.Stdout,
+		WARN:  os.Stdout,
+		ERROR: os.Stderr,
+		FATAL: os.Stderr,
+	}
+)
+
+var defaultLogging = NewLogging()
+
 func NewLogging(opts ...LoggingOpt) *Logging {
 	ret := &Logging{
 		timeFormatter: TimeFormat,
-		colorFlag:     AutoColor,
-		fileFlag:      ShortFile,
-		fatalNoTrace:  false,
-		level:         INFO,
+		colorFlag:     ColorFlag,
+		fileFlag:      PrintFileFlag,
+		fatalNoTrace:  FatalNoTrace,
+		level:         Level,
 
-		writers: map[int]io.Writer{
-			DEBUG: os.Stdout,
-			INFO:  os.Stdout,
-			WARN:  os.Stdout,
-			ERROR: os.Stderr,
-			FATAL: os.Stderr,
-		},
+		writers: Writers,
 
 		bufPool: sync.Pool{New: func() interface{} {
 			return bytes.NewBuffer(nil)
@@ -331,4 +341,9 @@ func SetOutputBySeverity(severity int, w io.Writer) func(*Logging) {
 	return func(logging *Logging) {
 		logging.writers[severity] = w
 	}
+}
+
+func Init(logging *Logging) {
+	defaultLogging = logging
+	ResetFactory(logging)
 }

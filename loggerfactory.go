@@ -11,14 +11,20 @@ import (
 )
 
 type LoggerFactory struct {
-	value   atomic.Value
+	value atomic.Value
 }
 
-var defaultFactory = NewFactory()
+var defaultFactory = newFactory(defaultLogging)
 
 func NewFactory(opts ...LoggingOpt) *LoggerFactory {
 	ret := &LoggerFactory{}
 	ret.value.Store(NewLogging(opts...))
+	return ret
+}
+
+func newFactory(logging *Logging) *LoggerFactory {
+	ret := &LoggerFactory{}
+	ret.value.Store(logging)
 	return ret
 }
 

@@ -23,7 +23,7 @@ func TestFactoryTag(t *testing.T) {
 	logger.WithName("test2")
 	logger.Warnln("test2")
 
-	type A struct {}
+	type A struct{}
 	logger = xlog.GetLogger(A{})
 	logger.Warnln("A")
 
