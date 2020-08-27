@@ -11,10 +11,31 @@ import (
 )
 
 func TestLogf(t *testing.T) {
-	l := xlog.NewLogging()
+	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l.Logf(xlog.DEBUG, 0, "DEBUG test\n")
 	l.Logf(xlog.INFO, 0, "INFO test\n")
 	l.Logf(xlog.WARN, 0, "WARN test\n")
-	l.Logf(xlog.ERROR, 0, "ERROR test\n")
+	l.Logf(xlog.ERROR, 0, "ERROR test")
 	l.Logf(xlog.FATAL, 0, "FATAL test\n")
+}
+
+func TestLog(t *testing.T) {
+	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	l.Log(xlog.DEBUG, 0, "DEBUG", " test")
+	l.Log(xlog.INFO, 0, "INFO", " test")
+	l.Log(xlog.WARN, 0, "WARN", " test")
+	l.Log(xlog.ERROR, 0, "ERROR", " test")
+	l.Log(xlog.FATAL, 0, "FATAL", " test")
+}
+
+func TestLogln(t *testing.T) {
+	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	l.Logln(xlog.DEBUG, 0, "DEBUG", " test")
+	l.Logln(xlog.INFO, 0, "INFO", " test")
+	l.Logln(xlog.WARN, 0, "WARN", " test")
+	l.Logln(xlog.ERROR, 0, "ERROR", " test")
+	l.Logln(xlog.FATAL, 0, "FATAL", " test")
 }

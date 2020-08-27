@@ -53,14 +53,12 @@ var (
 	reset   = "\033[0m"
 )
 
-var gLogTag = map[int]string{}
-
-func init() {
-	gLogTag[DEBUG] = "Debug"
-	gLogTag[INFO] = "Info"
-	gLogTag[WARN] = "Warn"
-	gLogTag[ERROR] = "Error"
-	gLogTag[FATAL] = "Fatal"
+var gLogTag = map[int]string{
+	DEBUG: "Debug",
+	INFO:  "Info",
+	WARN:  "Warn",
+	ERROR: "Error",
+	FATAL: "Fatal",
 }
 
 type LoggingOpt func(l *Logging)
@@ -68,6 +66,7 @@ type LoggingOpt func(l *Logging)
 type Logging struct {
 	timeFormatter   func(t time.Time) string
 	headerFormatter func(level, depth int) string
+	tag             string
 	colorFlag       int
 	fileFlag        int
 	fatalNoTrace    bool
@@ -127,12 +126,20 @@ func (l *Logging) formatHeader(level, depth int) string {
 	} else if (l.fileFlag & ShortFile) != 0 {
 		file = shortFile(file)
 	}
-	return fmt.Sprintf("%s [%s%s%s] [%s:%d] ",
-		l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line)
+
+	if l.tag != "" {
+		return fmt.Sprintf("%s [%s%s%s] [%s:%d] [%s] ",
+			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, l.tag)
+	} else {
+		return fmt.Sprintf("%s [%s%s%s] [%s:%d] ",
+			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line)
+	}
 }
 
 func selectLevelColor(level int) string {
-	if level == WARN {
+	if level == INFO {
+		return blue
+	} else if level == WARN {
 		return yellow
 	} else if level > WARN {
 		return red
@@ -147,7 +154,36 @@ func (l *Logging) Logf(level int, depth int, format string, args ...interface{})
 
 	buf := bytes.NewBufferString(l.headerFormatter(level, depth))
 	fmt.Fprintf(buf, format, args...)
+	if buf.Bytes()[buf.Len()-1] != '\n' {
+		buf.WriteByte('\n')
+	}
 
+	l.output(level, buf)
+}
+
+func (l *Logging) Log(level int, depth int, args ...interface{}) {
+	if l.level > level {
+		return
+	}
+
+	buf := bytes.NewBufferString(l.headerFormatter(level, depth))
+	fmt.Fprint(buf, args...)
+
+	l.output(level, buf)
+}
+
+func (l *Logging) Logln(level int, depth int, args ...interface{}) {
+	if l.level > level {
+		return
+	}
+
+	buf := bytes.NewBufferString(l.headerFormatter(level, depth))
+	fmt.Fprintln(buf, args...)
+
+	l.output(level, buf)
+}
+
+func (l *Logging) output(level int, buf *bytes.Buffer) {
 	if level >= FATAL {
 		if !l.fatalNoTrace {
 			trace := stacks(true)
@@ -199,4 +235,60 @@ func stacks(all bool) []byte {
 func TimeFormat(t time.Time) string {
 	var timeString = t.Format("2006-01-02 15:04:05")
 	return timeString
+}
+
+func SetTimeFormatter(f func(t time.Time) string) func(*Logging) {
+	return func(logging *Logging) {
+		logging.timeFormatter = f
+	}
+}
+
+func SetHeaderFormatter(f func(level, depth int) string) func(*Logging) {
+	return func(logging *Logging) {
+		logging.headerFormatter = f
+	}
+}
+
+func SetName(name string) func(*Logging) {
+	return func(logging *Logging) {
+		logging.tag = name
+	}
+}
+
+func SetColorFlag(flag int) func(*Logging) {
+	return func(logging *Logging) {
+		logging.colorFlag = flag
+	}
+}
+
+func SetShowFileFlag(flag int) func(*Logging) {
+	return func(logging *Logging) {
+		logging.fileFlag = flag
+	}
+}
+
+func SetFatalNoTrace(noTrace bool) func(*Logging) {
+	return func(logging *Logging) {
+		logging.fatalNoTrace = noTrace
+	}
+}
+
+func SetLogSeverity(severity int) func(*Logging) {
+	return func(logging *Logging) {
+		logging.level = severity
+	}
+}
+
+func SetOutput(w io.Writer) func(*Logging) {
+	return func(logging *Logging) {
+		for i := DEBUG; i <= FATAL; i++ {
+			logging.writers[i] = w
+		}
+	}
+}
+
+func SetOutputBySeverity(severity int, w io.Writer) func(*Logging) {
+	return func(logging *Logging) {
+		logging.writers[severity] = w
+	}
 }
