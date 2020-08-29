@@ -6,12 +6,12 @@
 package xlog
 
 var (
-	DebugDepth = 1
-	DebugTag   = ""
+	DebugDepth       = 1
+	DebugTag   Field = nil
 )
 
 func Debug(args ...interface{}) {
-	defaultLogging.Log(DEBUG, DebugDepth, "", args...)
+	defaultLogging.Log(DEBUG, DebugDepth, DebugTag, args...)
 }
 
 func Debugln(args ...interface{}) {

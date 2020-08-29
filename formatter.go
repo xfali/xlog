@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 )
 
 type Iterator interface {
@@ -17,25 +18,29 @@ type Iterator interface {
 	Next() (string, interface{})
 }
 
-type Filed interface {
+type Field interface {
 	Add(keyAndValues ...interface{}) error
 	GetAll() map[string]interface{}
 	Keys() []string
 	Get(key string) interface{}
 	Iterator() Iterator
+
+	Clone() Field
 }
 
 type Formatter interface {
-	Format(Filed) ([]byte, error)
+	Format(writer io.Writer, field Field) error
 }
 
 type defaultField [2]interface{}
 
-func NewField() Filed {
+func NewField(keyAndValues ...interface{}) Field {
 	ret := &defaultField{
 	}
 	ret[0] = []string{}
 	ret[1] = map[string]interface{}{}
+
+	ret.Add(keyAndValues...)
 	return ret
 }
 
@@ -86,6 +91,16 @@ func (f defaultField) Get(key string) interface{} {
 	return f[1].(map[string]interface{})[key]
 }
 
+func (f defaultField) Clone() Field {
+	ret := NewField()
+
+	for _, k := range f.Keys() {
+		ret.Add(k, f.Get(k))
+	}
+
+	return ret
+}
+
 type defaultIterator struct {
 	field *defaultField
 	cur   int
@@ -111,10 +126,10 @@ type TextFormatter struct {
 	SortFunc func([]string)
 }
 
-func (f *TextFormatter) Format(filed Filed) ([]byte, error) {
-	keys := filed.Keys()
+func (f *TextFormatter) Format(writer io.Writer, field Field) error {
+	keys := field.Keys()
 	if len(keys) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	if f.SortFunc != nil {
@@ -125,11 +140,12 @@ func (f *TextFormatter) Format(filed Filed) ([]byte, error) {
 	for _, k := range keys {
 		buf.WriteString(k)
 		buf.WriteByte('=')
-		buf.WriteString(formatValue(filed.Get(k)))
+		buf.WriteString(formatValue(field.Get(k)))
 		buf.WriteByte(' ')
 	}
 
-	return buf.Bytes(), nil
+	_, err := writer.Write(buf.Bytes())
+	return err
 }
 
 func formatValue(o interface{}) string {
@@ -146,6 +162,11 @@ func formatValue(o interface{}) string {
 type JsonFormatter struct {
 }
 
-func (f *JsonFormatter) Format(filed Filed) ([]byte, error) {
-	return json.Marshal(filed.GetAll())
+func (f *JsonFormatter) Format(writer io.Writer, field Field) error {
+	d, err := json.Marshal(field.GetAll())
+	if err != nil {
+		return err
+	}
+	_, err = writer.Write(d)
+	return err
 }

@@ -34,6 +34,13 @@ const (
 	ForceColor
 )
 
+const (
+	KeyTimestamp = "Timestamp"
+	KeySeverityLevel = "Severity"
+	KeyFileLine = "FileLine"
+	KeyLog = "Log"
+)
+
 var (
 	ColorGreen   = string([]byte{27, 91, 57, 55, 59, 52, 50, 109})
 	ColorWhite   = string([]byte{27, 91, 57, 48, 59, 52, 55, 109})
@@ -75,7 +82,7 @@ type LoggingOpt func(l *Logging)
 
 type Logging struct {
 	timeFormatter func(t time.Time) string
-	formatter     func(writer io.Writer, level, depth int, tag string, info string)
+	formatter     Formatter
 	colorFlag     int
 	fileFlag      int
 	fatalNoTrace  bool
@@ -117,7 +124,6 @@ func NewLogging(opts ...LoggingOpt) *Logging {
 			return bytes.NewBuffer(nil)
 		}},
 	}
-	ret.formatter = ret.format
 
 	for _, v := range opts {
 		v(ret)
@@ -125,7 +131,7 @@ func NewLogging(opts ...LoggingOpt) *Logging {
 	return ret
 }
 
-func (l *Logging) format(writer io.Writer, level, depth int, tag string, log string) {
+func (l *Logging) format(writer io.Writer, level, depth int, field Field, log string) {
 	var (
 		file string
 		line int
@@ -152,13 +158,31 @@ func (l *Logging) format(writer io.Writer, level, depth int, tag string, log str
 		file = shortFile(file)
 	}
 
-	if tag != "" {
-		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] [%s] %s ",
-			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, tag, log)
+	if l.formatter != nil {
+		if field == nil {
+			field = NewField()
+		} else {
+			field = field.Clone()
+		}
+		field.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyFileLine, fmt.Sprintf("%s:%d", file, line), KeyLog, log)
+		l.formatter.Format(writer, field)
 	} else {
-		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] %s ",
-			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, log)
+		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] %s %s",
+			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, formatField(field), log)
 	}
+}
+
+func formatField(field Field) string{
+	if field == nil {
+		return ""
+	}
+
+	buf := bytes.Buffer{}
+	for _, k := range field.Keys() {
+		buf.WriteString(formatValue(field.Get(k)))
+		buf.WriteByte(' ')
+	}
+	return buf.String()
 }
 
 func selectLevelColor(level int) string {
@@ -172,7 +196,7 @@ func selectLevelColor(level int) string {
 	return ""
 }
 
-func (l *Logging) Logf(level int, depth int, tag string, format string, args ...interface{}) {
+func (l *Logging) Logf(level int, depth int, field Field, format string, args ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -185,7 +209,7 @@ func (l *Logging) Logf(level int, depth int, tag string, format string, args ...
 	}
 	logInfo := fmt.Sprintf(format, args...)
 	w := l.selectWriter(level)
-	l.formatter(w, level, depth, tag, logInfo)
+	l.format(w, level, depth, field, logInfo)
 
 	if level >= FATAL {
 		l.processFatal(w)
@@ -194,28 +218,28 @@ func (l *Logging) Logf(level int, depth int, tag string, format string, args ...
 	//l.output(level, buf)
 }
 
-func (l *Logging) Log(level int, depth int, tag string, args ...interface{}) {
+func (l *Logging) Log(level int, depth int, field Field, args ...interface{}) {
 	if l.level > level {
 		return
 	}
 
 	logInfo := fmt.Sprint(args...)
 	w := l.selectWriter(level)
-	l.formatter(w, level, depth, tag, logInfo)
+	l.format(w, level, depth, field, logInfo)
 
 	if level >= FATAL {
 		l.processFatal(w)
 	}
 }
 
-func (l *Logging) Logln(level int, depth int, tag string, args ...interface{}) {
+func (l *Logging) Logln(level int, depth int, field Field, args ...interface{}) {
 	if l.level > level {
 		return
 	}
 
 	logInfo := fmt.Sprintln(args...)
 	w := l.selectWriter(level)
-	l.formatter(w, level, depth, tag, logInfo)
+	l.format(w, level, depth, field, logInfo)
 
 	if level >= FATAL {
 		l.processFatal(w)
@@ -308,7 +332,7 @@ func SetTimeFormatter(f func(t time.Time) string) func(*Logging) {
 	}
 }
 
-func SetHeaderFormatter(f func(writer io.Writer, level, depth int, tag, log string)) func(*Logging) {
+func SetFormatter(f Formatter) func(*Logging) {
 	return func(logging *Logging) {
 		logging.formatter = f
 	}

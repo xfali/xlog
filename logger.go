@@ -43,5 +43,6 @@ type Logger interface {
 	LogFatal
 
 	WithName(name string) Logger
+	WithField(field Field) Logger
 	WithDepth(depth int) Logger
 }

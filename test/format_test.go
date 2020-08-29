@@ -7,6 +7,7 @@ package test
 
 import (
 	"github.com/xfali/xlog"
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -44,24 +45,20 @@ func TestTextFormatter(t *testing.T) {
 
 	t.Run("none", func(t *testing.T) {
 		formatter := xlog.TextFormatter{}
-		d, err := formatter.Format(field)
+		err := formatter.Format(os.Stdout, field)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		t.Log(string(d))
 	})
 
 	t.Run("sorted", func(t *testing.T) {
 		formatter := xlog.TextFormatter{
 			SortFunc: sort.Strings,
 		}
-		d, err := formatter.Format(field)
+		err := formatter.Format(os.Stdout, field)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		t.Log(string(d))
 	})
 }
 
@@ -74,11 +71,9 @@ func TestJsonFormatter(t *testing.T) {
 
 	t.Run("none", func(t *testing.T) {
 		formatter := xlog.JsonFormatter{}
-		d, err := formatter.Format(field)
+		err := formatter.Format(os.Stdout, field)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		t.Log(string(d))
 	})
 }

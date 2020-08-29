@@ -13,29 +13,35 @@ import (
 func TestLoggingf(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
-	l.Logf(xlog.DEBUG, 0, "", "DEBUG test\n")
-	l.Logf(xlog.INFO, 0, "", "INFO test\n")
-	l.Logf(xlog.WARN, 0, "mytest", "WARN test\n")
-	l.Logf(xlog.ERROR, 0, "", "ERROR test")
-	l.Logf(xlog.FATAL, 0, "", "FATAL test\n")
+	l.Logf(xlog.DEBUG, 0, nil, "DEBUG test\n")
+	l.Logf(xlog.INFO, 0, nil, "INFO test\n")
+	l.Logf(xlog.WARN, 0, xlog.NewField("mytest", "mytest"), "WARN test\n")
+	l.Logf(xlog.ERROR, 0, nil, "ERROR test")
+	l.Logf(xlog.FATAL, 0, nil, "FATAL test\n")
 }
 
 func TestLogging(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
-	l.Log(xlog.DEBUG, 0, "", "DEBUG", " test")
-	l.Log(xlog.INFO, 0, "", "INFO", " test")
-	l.Log(xlog.WARN, 0, "", "WARN", " test")
-	l.Log(xlog.ERROR, 0, "", "ERROR", " test")
-	l.Log(xlog.FATAL, 0, "", "FATAL", " test")
+	l.Log(xlog.DEBUG, 0, nil, "DEBUG", " test")
+	l.Log(xlog.INFO, 0, nil, "INFO", " test")
+	l.Log(xlog.WARN, 0, nil, "WARN", " test")
+	l.Log(xlog.ERROR, 0, nil, "ERROR", " test")
+	l.Log(xlog.FATAL, 0, nil, "FATAL", " test")
 }
 
 func TestLoggingln(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
-	l.Logln(xlog.DEBUG, 0, "", "DEBUG", " test")
-	l.Logln(xlog.INFO, 0, "", "INFO", " test")
-	l.Logln(xlog.WARN, 0, "", "WARN", " test")
-	l.Logln(xlog.ERROR, 0, "", "ERROR", " test")
-	l.Logln(xlog.FATAL, 0, "", "FATAL", " test")
+	l.Logln(xlog.DEBUG, 0, nil, "DEBUG", " test")
+	l.Logln(xlog.INFO, 0, nil, "INFO", " test")
+	l.Logln(xlog.WARN, 0, nil, "WARN", " test")
+	l.Logln(xlog.ERROR, 0, nil, "ERROR", " test")
+	l.Logln(xlog.FATAL, 0, nil, "FATAL", " test")
+}
+
+func TestLoggingWithFormat(t *testing.T) {
+	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	l := xlog.NewLogging(xlog.SetFormatter(&xlog.TextFormatter{}))
+	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "ERROR", " test")
 }

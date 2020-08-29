@@ -8,90 +8,107 @@ package xlog
 type xlog struct {
 	logging *Logging
 	depth   int
-	tag     string
+	field   Field
+	name    string
 }
 
-func NewLogger(logging *Logging, tag ...string) Logger {
-	return newLogger(logging, tag...)
+func NewLogger(logging *Logging, name ...string) Logger {
+	return newLogger(logging, name...)
 }
 
-func newLogger(logging *Logging, tag ...string) *xlog {
+func newLogger(logging *Logging, name ...string) *xlog {
 	var t string
-	if len(tag) > 0 {
-		t = tag[0]
+	if len(name) > 0 {
+		t = name[0]
 	}
 	return &xlog{
 		logging: logging,
 		depth:   1,
-		tag:     t,
+		name:    t,
+		//field:   field,
 	}
 }
 
 func (l *xlog) Debug(args ...interface{}) {
-	l.logging.Log(DEBUG, l.depth, l.tag, args...)
+	l.logging.Log(DEBUG, l.depth, l.field, args...)
 }
 
 func (l *xlog) Debugln(args ...interface{}) {
-	l.logging.Logln(DEBUG, l.depth, l.tag, args...)
+	l.logging.Logln(DEBUG, l.depth, l.field, args...)
 }
 
 func (l *xlog) Debugf(fmt string, args ...interface{}) {
-	l.logging.Logf(DEBUG, l.depth, l.tag, fmt, args...)
+	l.logging.Logf(DEBUG, l.depth, l.field, fmt, args...)
 }
 
 func (l *xlog) Info(args ...interface{}) {
-	l.logging.Log(INFO, l.depth, l.tag, args...)
+	l.logging.Log(INFO, l.depth, l.field, args...)
 }
 
 func (l *xlog) Infoln(args ...interface{}) {
-	l.logging.Logln(INFO, l.depth, l.tag, args...)
+	l.logging.Logln(INFO, l.depth, l.field, args...)
 }
 
 func (l *xlog) Infof(fmt string, args ...interface{}) {
-	l.logging.Logf(INFO, l.depth, l.tag, fmt, args...)
+	l.logging.Logf(INFO, l.depth, l.field, fmt, args...)
 }
 
 func (l *xlog) Warn(args ...interface{}) {
-	l.logging.Log(WARN, l.depth, l.tag, args...)
+	l.logging.Log(WARN, l.depth, l.field, args...)
 }
 
 func (l *xlog) Warnln(args ...interface{}) {
-	l.logging.Logln(WARN, l.depth, l.tag, args...)
+	l.logging.Logln(WARN, l.depth, l.field, args...)
 }
 
 func (l *xlog) Warnf(fmt string, args ...interface{}) {
-	l.logging.Logf(WARN, l.depth, l.tag, fmt, args...)
+	l.logging.Logf(WARN, l.depth, l.field, fmt, args...)
 }
 
 func (l *xlog) Error(args ...interface{}) {
-	l.logging.Log(ERROR, l.depth, l.tag, args...)
+	l.logging.Log(ERROR, l.depth, l.field, args...)
 }
 
 func (l *xlog) Errorln(args ...interface{}) {
-	l.logging.Logln(ERROR, l.depth, l.tag, args...)
+	l.logging.Logln(ERROR, l.depth, l.field, args...)
 }
 
 func (l *xlog) Errorf(fmt string, args ...interface{}) {
-	l.logging.Logf(ERROR, l.depth, l.tag, fmt, args...)
+	l.logging.Logf(ERROR, l.depth, l.field, fmt, args...)
 }
 
 func (l *xlog) Fatal(args ...interface{}) {
-	l.logging.Log(FATAL, l.depth, l.tag, args...)
+	l.logging.Log(FATAL, l.depth, l.field, args...)
 }
 
 func (l *xlog) Fatalln(args ...interface{}) {
-	l.logging.Logln(FATAL, l.depth, l.tag, args...)
+	l.logging.Logln(FATAL, l.depth, l.field, args...)
 }
 
 func (l *xlog) Fatalf(fmt string, args ...interface{}) {
-	l.logging.Logf(FATAL, l.depth, l.tag, fmt, args...)
+	l.logging.Logf(FATAL, l.depth, l.field, fmt, args...)
 }
 
 func (l *xlog) WithName(name string) Logger {
 	if l == nil {
 		return nil
 	}
+	if l.field == nil {
+		l.field = NewField()
+	}
+	l.field.Add("name", name)
 	ret := newLogger(l.logging, name)
+	ret.depth = l.depth
+
+	return ret
+}
+
+func (l *xlog) WithField(field Field) Logger {
+	if l == nil {
+		return nil
+	}
+	ret := newLogger(l.logging)
+	l.field = field
 	ret.depth = l.depth
 
 	return ret
@@ -101,7 +118,7 @@ func (l *xlog) WithDepth(depth int) Logger {
 	if l == nil {
 		return nil
 	}
-	ret := newLogger(l.logging, l.tag)
+	ret := newLogger(l.logging)
 	ret.depth += depth
 
 	return ret
