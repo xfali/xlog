@@ -44,14 +44,23 @@ var (
 	ColorCyan    = string([]byte{27, 91, 57, 55, 59, 52, 54, 109})
 	ColorReset   = string([]byte{27, 91, 48, 109})
 
-	green   = "\033[97;42m"
-	white   = "\033[90;47m"
-	yellow  = "\033[90;43m"
-	red     = "\033[97;41m"
-	blue    = "\033[97;44m"
-	magenta = "\033[97;45m"
-	cyan    = "\033[97;46m"
-	reset   = "\033[0m"
+	ForeGreen   = "\033[97;32m"
+	ForeWhite   = "\033[90;37m"
+	ForeYellow  = "\033[90;33m"
+	ForeRed     = "\033[97;31m"
+	ForeBlue    = "\033[97;34m"
+	ForeMagenta = "\033[97;35m"
+	ForeCyan    = "\033[97;36m"
+
+	BackGreen   = "\033[97;42m"
+	BackWhite   = "\033[90;47m"
+	BackYellow  = "\033[90;43m"
+	BackRed     = "\033[97;41m"
+	BackBlue    = "\033[97;44m"
+	BackMagenta = "\033[97;45m"
+	BackCyan    = "\033[97;46m"
+
+	ResetColor  = "\033[0m"
 )
 
 var gLogTag = map[int]string{
@@ -134,7 +143,7 @@ func (l *Logging) format(writer io.Writer, level, depth int, tag string, log str
 	)
 	if l.colorFlag == AutoColor {
 		lvColor = selectLevelColor(level)
-		resetColor = ColorReset
+		resetColor = ResetColor
 	}
 
 	if l.fileFlag == 0 {
@@ -154,11 +163,11 @@ func (l *Logging) format(writer io.Writer, level, depth int, tag string, log str
 
 func selectLevelColor(level int) string {
 	if level == INFO {
-		return blue
+		return ForeCyan
 	} else if level == WARN {
-		return yellow
+		return ForeYellow
 	} else if level > WARN {
-		return red
+		return ForeRed
 	}
 	return ""
 }
