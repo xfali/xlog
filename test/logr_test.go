@@ -39,6 +39,7 @@ func TestLogr2(t *testing.T) {
 	logging := xlog.NewLogging()
 	logging.SetFormatter(&xlog.TextFormatter{
 		TimeFormat: xlog.TimeFormat,
+		WithQuote:  true,
 	})
 	logr := xlogr.NewLogrWithLogging(logging)
 	if !logr.Enabled() {

@@ -7,6 +7,7 @@ package xlog
 
 import (
 	"reflect"
+	"strings"
 	"sync/atomic"
 )
 
@@ -53,7 +54,12 @@ func (fac *loggerFactory) GetLogger(o ...interface{}) Logger {
 		if t.Kind() == reflect.String {
 			return NewLogger(fac.value.Load().(Logging), o[0].(string))
 		}
-		return NewLogger(fac.value.Load().(Logging), t.String())
+
+		name := t.PkgPath()
+		if name != "" {
+			name = strings.Replace(name, "/", ".", -1) + "." + t.Name()
+		}
+		return NewLogger(fac.value.Load().(Logging), name)
 	}
 }
 

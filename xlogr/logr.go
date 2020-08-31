@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	KeyLogrMessage = "Message"
-	KeyLogrError   = "Error"
+	KeyLogrMessage = "LogMessage"
+	KeyLogrError   = "LogError"
 )
 
 type xlogr struct {

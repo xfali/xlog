@@ -36,8 +36,7 @@ type Formatter interface {
 type defaultField [2]interface{}
 
 func NewField(keyAndValues ...interface{}) Field {
-	ret := &defaultField{
-	}
+	ret := &defaultField{}
 	ret[0] = []string{}
 	ret[1] = map[string]interface{}{}
 
@@ -53,7 +52,7 @@ func (f *defaultField) Add(keyAndValues ...interface{}) error {
 	//keys := f[0].([]string)
 	kvs := f[1].(map[string]interface{})
 	var k string
-	for i := 0; i < size; i ++ {
+	for i := 0; i < size; i++ {
 		if i%2 == 0 {
 			if keyAndValues[i] == nil {
 				return errors.New("Key must be not nil ")
@@ -120,8 +119,32 @@ func (c *defaultIterator) Next() (string, interface{}) {
 	return v, c.field[1].(map[string]interface{})[v]
 }
 
+func MergeFields(fields ...Field) (Field, error) {
+	if len(fields) == 0 {
+		return nil, errors.New("No field to merge ")
+	} else {
+		field := fields[0]
+		var tmp Field
+		for i := 1; i < len(fields); i++ {
+			tmp = fields[i]
+			if tmp == nil {
+				continue
+			}
+			keys := tmp.Keys()
+			for _, k := range keys {
+				err := field.Add(k, tmp.Get(k))
+				if err != nil {
+					return field, err
+				}
+			}
+		}
+		return field, nil
+	}
+}
+
 type TextFormatter struct {
 	TimeFormat func(t time.Time) string
+	WithQuote  bool
 	SortFunc   func([]string)
 }
 
@@ -142,7 +165,9 @@ func (f *TextFormatter) Format(writer io.Writer, field Field) error {
 		buf.WriteString(f.formatValue(field.Get(k)))
 		buf.WriteByte(' ')
 	}
-
+	if buf.Cap() == 0 || buf.Bytes()[buf.Len()-1] != '\n' {
+		buf.WriteByte('\n')
+	}
 	_, err := writer.Write(buf.Bytes())
 	return err
 }
@@ -154,21 +179,28 @@ func (f *TextFormatter) formatValue(o interface{}) string {
 
 	if t, ok := o.(time.Time); ok {
 		if f.TimeFormat != nil {
-			return f.TimeFormat(t)
+			o = f.TimeFormat(t)
 		}
 	}
-	return formatValue(o)
+	return formatValue(o, f.WithQuote)
 }
 
-func formatValue(o interface{}) string {
+func formatValue(o interface{}, quote bool) string {
 	if o == nil {
 		return ""
 	}
 
+	var ret string
 	if s, ok := o.(string); ok {
-		return s
+		ret = s
+	} else {
+		ret = fmt.Sprint(o)
 	}
-	return fmt.Sprint(o)
+
+	if quote {
+		ret = fmt.Sprintf("%q", ret)
+	}
+	return ret
 }
 
 type JsonFormatter struct {

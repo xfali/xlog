@@ -22,7 +22,7 @@ func TestField(t *testing.T) {
 	t.Log("keys", field.Keys())
 	t.Log("all", field.GetAll())
 	it := field.Iterator()
-	for  it.HasNext() {
+	for it.HasNext() {
 		x, v := it.Next()
 		t.Log("iterator", x, v)
 	}
@@ -30,7 +30,7 @@ func TestField(t *testing.T) {
 	field.Add("float", 1.1, "string", "test")
 	t.Log("after add twice")
 	it = field.Iterator()
-	for  it.HasNext() {
+	for it.HasNext() {
 		x, v := it.Next()
 		t.Log("iterator", x, v)
 	}
@@ -43,6 +43,14 @@ func TestTextFormatter(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Run("empty", func(t *testing.T) {
+		formatter := xlog.TextFormatter{}
+		err := formatter.Format(os.Stdout, xlog.NewField())
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
 	t.Run("none", func(t *testing.T) {
 		formatter := xlog.TextFormatter{}
 		err := formatter.Format(os.Stdout, field)
@@ -54,6 +62,17 @@ func TestTextFormatter(t *testing.T) {
 	t.Run("sorted", func(t *testing.T) {
 		formatter := xlog.TextFormatter{
 			SortFunc: sort.Strings,
+		}
+		err := formatter.Format(os.Stdout, field)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("sorted with quota", func(t *testing.T) {
+		formatter := xlog.TextFormatter{
+			SortFunc:  sort.Strings,
+			WithQuote: true,
 		}
 		err := formatter.Format(os.Stdout, field)
 		if err != nil {

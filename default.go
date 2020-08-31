@@ -13,19 +13,23 @@ type xlog struct {
 }
 
 func NewLogger(logging Logging, name ...string) Logger {
-	return newLogger(logging, name...)
+	return newLogger(logging, nil, name...)
 }
 
-func newLogger(logging Logging, name ...string) *xlog {
+func newLogger(logging Logging, field Field, name ...string) *xlog {
+	if field == nil {
+		field = NewField()
+	}
 	var t string
 	if len(name) > 0 {
 		t = name[0]
+		field.Add(KeyName, name)
 	}
 	return &xlog{
 		logging: logging,
 		depth:   1,
 		name:    t,
-		//field:   field,
+		field:   field,
 	}
 }
 
@@ -105,11 +109,8 @@ func (l *xlog) WithName(name string) Logger {
 	if l == nil {
 		return nil
 	}
-	if l.field == nil {
-		l.field = NewField()
-	}
 	l.field.Add("name", name)
-	ret := newLogger(l.logging, name)
+	ret := newLogger(l.logging, l.field.Clone(), l.name+"."+name)
 	ret.depth = l.depth
 
 	return ret
@@ -119,8 +120,8 @@ func (l *xlog) WithField(field Field) Logger {
 	if l == nil {
 		return nil
 	}
-	ret := newLogger(l.logging)
-	l.field = field
+	ret := newLogger(l.logging, l.field.Clone(), l.name)
+	MergeFields(ret.field, field)
 	ret.depth = l.depth
 
 	return ret
@@ -130,7 +131,7 @@ func (l *xlog) WithDepth(depth int) Logger {
 	if l == nil {
 		return nil
 	}
-	ret := newLogger(l.logging)
+	ret := newLogger(l.logging, l.field.Clone(), l.name)
 	ret.depth += depth
 
 	return ret

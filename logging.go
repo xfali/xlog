@@ -36,10 +36,10 @@ const (
 )
 
 const (
-	KeyTimestamp     = "Timestamp"
-	KeySeverityLevel = "Severity"
-	KeyFileLine      = "FileLine"
-	KeyLog           = "Log"
+	KeyTimestamp     = "LogTime"
+	KeySeverityLevel = "LogLevel"
+	KeyFileLine      = "LogCaller"
+	KeyLog           = "LogContent"
 	KeyName          = "LogName"
 )
 
@@ -172,14 +172,19 @@ func (l *logging) format(writer io.Writer, level, depth int, field Field, log st
 		file = shortFile(file)
 	}
 
+	//if log == "" || log[len(log)-1] != '\n' {
+	//	log += "\n"
+	//}
+
 	if l.formatter != nil {
-		if field == nil {
-			field = NewField()
-		} else {
-			field = field.Clone()
+		innerField := NewField()
+		innerField.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyFileLine, fmt.Sprintf("%s:%d", file, line))
+		MergeFields(innerField, field)
+		if log == "\n" {
+			log = ""
 		}
-		field.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyFileLine, fmt.Sprintf("%s:%d", file, line), KeyLog, log)
-		l.formatter.Format(writer, field)
+		innerField.Add(KeyLog, log)
+		l.formatter.Format(writer, innerField)
 	} else {
 		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] %s %s",
 			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, l.formatField(field), log)
@@ -209,7 +214,7 @@ func (l *logging) formatValue(o interface{}) string {
 			return l.timeFormatter(t)
 		}
 	}
-	return formatValue(o)
+	return formatValue(o, false)
 }
 
 func selectLevelColor(level int) string {
