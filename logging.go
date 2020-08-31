@@ -25,25 +25,36 @@ const (
 )
 
 const (
+	//只显示文件名
 	ShortFile = 1
-	LongFile  = 1 << 1
+	//显示文件名及路径
+	LongFile = 1 << 1
 )
 
 const (
+	//自动填充颜色
 	AutoColor = iota
+	//禁用颜色
 	DisableColor
+	//强制使用颜色
 	ForceColor
 )
 
 const (
-	KeyTimestamp     = "LogTime"
+	// 时间戳的Key
+	KeyTimestamp = "LogTime"
+	// 日志级别key
 	KeySeverityLevel = "LogLevel"
-	KeyFileLine      = "LogCaller"
-	KeyLog           = "LogContent"
-	KeyName          = "LogName"
+	// 调用者Key
+	KeyCaller = "LogCaller"
+	// 日志内容Key
+	KeyContent = "LogContent"
+	// 日志名称Key
+	KeyName = "LogName"
 )
 
 var (
+	//前景色
 	ColorGreen   = string([]byte{27, 91, 57, 55, 59, 52, 50, 109})
 	ColorWhite   = string([]byte{27, 91, 57, 48, 59, 52, 55, 109})
 	ColorYellow  = string([]byte{27, 91, 57, 48, 59, 52, 51, 109})
@@ -61,6 +72,7 @@ var (
 	ForeMagenta = "\033[97;35m"
 	ForeCyan    = "\033[97;36m"
 
+	//背景色
 	BackGreen   = "\033[97;42m"
 	BackWhite   = "\033[90;47m"
 	BackYellow  = "\033[90;43m"
@@ -72,6 +84,7 @@ var (
 	ResetColor = "\033[0m"
 )
 
+// 级别及名称映射
 var gLogTag = map[int]string{
 	DEBUG: "DEBUG",
 	INFO:  "INFO",
@@ -80,6 +93,7 @@ var gLogTag = map[int]string{
 	FATAL: "FATAL",
 }
 
+// 默认值
 var (
 	ColorFlag     = AutoColor
 	PrintFileFlag = ShortFile
@@ -96,15 +110,33 @@ var (
 
 type LoggingOpt func(l *logging)
 
+// Logging是xlog的日志基础工具，向下对接日志输出Writer，向上提供日志操作接口
 type Logging interface {
+	// 输出format日志（保证线程安全）
+	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， format格式化的格式， args参数
 	Logf(level int, depth int, field Field, format string, args ...interface{})
+
+	// 解析并输出参数（保证线程安全）
+	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， args参数
 	Log(level int, depth int, field Field, args ...interface{})
+
+	// 解析并输出参数，末尾增加换行（保证线程安全）
+	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， args参数
 	Logln(level int, depth int, field Field, args ...interface{})
 
+	// 设置日志格式化工具
 	SetFormatter(f Formatter)
+
+	// 设置日志严重级别，低于该级别的将不被输出
 	SetSeverityLevel(severityLevel int)
+
+	// 判断参数级别是否会输出
 	IsEnable(severityLevel int) bool
+
+	// 设置输出的Writer，注意该方法会将所有级别都配置为参数writer
 	SetOutput(w io.Writer)
+
+	// 设置对应日志级别的Writer
 	SetOutputBySeverity(severityLevel int, w io.Writer)
 }
 
@@ -178,12 +210,12 @@ func (l *logging) format(writer io.Writer, level, depth int, field Field, log st
 
 	if l.formatter != nil {
 		innerField := NewField()
-		innerField.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyFileLine, fmt.Sprintf("%s:%d", file, line))
+		innerField.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, fmt.Sprintf("%s:%d", file, line))
 		MergeFields(innerField, field)
 		if log == "\n" {
 			log = ""
 		}
-		innerField.Add(KeyLog, log)
+		innerField.Add(KeyContent, log)
 		l.formatter.Format(writer, innerField)
 	} else {
 		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] %s %s",
@@ -390,46 +422,55 @@ func TimeFormat(t time.Time) string {
 	return timeString
 }
 
+// 配置内置Logging实现的时间格式化函数
 func SetTimeFormatter(f func(t time.Time) string) func(*logging) {
 	return func(logging *logging) {
 		logging.timeFormatter = f
 	}
 }
 
+// 配置内置Logging实现的颜色的标志，有AutoColor、DisableColor、ForceColor
 func SetColorFlag(flag int) func(*logging) {
 	return func(logging *logging) {
 		logging.colorFlag = flag
 	}
 }
 
+// 配置内置Logging实现的文件输出标志，有ShortFile、LongFile
 func SetShowFileFlag(flag int) func(*logging) {
 	return func(logging *logging) {
 		logging.fileFlag = flag
 	}
 }
 
+// 配置内置Logging实现是否在发生致命错误时打印堆栈，默认打印
 func SetFatalNoTrace(noTrace bool) func(*logging) {
 	return func(logging *logging) {
 		logging.fatalNoTrace = noTrace
 	}
 }
 
+// 设置默认Logging的日志格式化工具
 func SetFormatter(f Formatter) {
 	DefaultLogging.SetFormatter(f)
 }
 
+// 设置默认Logging的日志严重级别
 func SetSeverityLevel(severity int) {
 	DefaultLogging.SetSeverityLevel(severity)
 }
 
+// 设置默认Logging的输出
 func SetOutput(w io.Writer) {
 	DefaultLogging.SetOutput(w)
 }
 
+// 设置默认Logging对应日志级别的输出
 func SetOutputBySeverity(severity int, w io.Writer) {
 	DefaultLogging.SetOutputBySeverity(severity, w)
 }
 
+// 使用一个Logging初始化日志系统，包括默认Logging和LoggerFactory
 func Init(logging Logging) {
 	DefaultLogging = logging
 	ResetFactoryLogging(logging)
@@ -445,4 +486,18 @@ func FramesToCaller() int {
 		}
 	}
 	return 1
+}
+
+// Logging不会自动为输出的Writer加锁，如果需要加锁请使用这个封装工具：
+// logging.SetOutPut(&LockWriter{ W: output_writer })
+type LockWriter struct {
+	lock sync.Mutex
+	W    io.Writer
+}
+
+func (lw *LockWriter) Write(d []byte) (int, error) {
+	lw.lock.Lock()
+	defer lw.lock.Unlock()
+
+	return lw.W.Write(d)
 }

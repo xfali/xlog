@@ -30,6 +30,7 @@ type Field interface {
 }
 
 type Formatter interface {
+	//将日志Field格式化
 	Format(writer io.Writer, field Field) error
 }
 
