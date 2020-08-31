@@ -20,6 +20,7 @@ const (
 	INFO
 	WARN
 	ERROR
+	PANIC
 	FATAL
 )
 
@@ -211,7 +212,9 @@ func (l *Logging) Logf(level int, depth int, field Field, format string, args ..
 	w := l.selectWriter(level)
 	l.format(w, level, depth, field, logInfo)
 
-	if level >= FATAL {
+	if level == PANIC {
+		panic(logInfo)
+	} else if level >= FATAL {
 		l.processFatal(w)
 	}
 
@@ -227,7 +230,9 @@ func (l *Logging) Log(level int, depth int, field Field, args ...interface{}) {
 	w := l.selectWriter(level)
 	l.format(w, level, depth, field, logInfo)
 
-	if level >= FATAL {
+	if level == PANIC {
+		panic(logInfo)
+	} else if level >= FATAL {
 		l.processFatal(w)
 	}
 }
@@ -241,7 +246,9 @@ func (l *Logging) Logln(level int, depth int, field Field, args ...interface{}) 
 	w := l.selectWriter(level)
 	l.format(w, level, depth, field, logInfo)
 
-	if level >= FATAL {
+	if level == PANIC {
+		panic(logInfo)
+	} else if level >= FATAL {
 		l.processFatal(w)
 	}
 }

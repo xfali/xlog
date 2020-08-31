@@ -15,3 +15,18 @@ func TestLog(t *testing.T) {
 	xlog.Infoln(1, 2, 3, 4)
 	xlog.Info(1, 2, 3, 4)
 }
+
+func TestLogPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		t.Log(r)
+		if s, ok := r.(string); ok {
+			if s != "this is a test" {
+				t.Fatal(`expect "this is a test", but get `, r)
+			}
+		} else {
+			t.Fatal("panic type is not string")
+		}
+	}()
+	xlog.Panic("this ", "is ", "a ", "test")
+}

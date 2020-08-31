@@ -58,6 +58,18 @@ func Errorf(fmt string, args ...interface{}) {
 	defaultLogging.Logf(ERROR, DebugDepth, DebugTag, fmt, args...)
 }
 
+func Panic(args ...interface{}) {
+	defaultLogging.Log(PANIC, DebugDepth, DebugTag, args...)
+}
+
+func Panicln(args ...interface{}) {
+	defaultLogging.Log(PANIC, DebugDepth, DebugTag, args...)
+}
+
+func Panicf(fmt string, args ...interface{}) {
+	defaultLogging.Log(PANIC, DebugDepth, DebugTag, args...)
+}
+
 func Fatal(args ...interface{}) {
 	defaultLogging.Log(FATAL, DebugDepth, DebugTag, args...)
 }

@@ -77,6 +77,18 @@ func (l *xlog) Errorf(fmt string, args ...interface{}) {
 	l.logging.Logf(ERROR, l.depth, l.field, fmt, args...)
 }
 
+func (l *xlog) Panic(args ...interface{}) {
+	l.logging.Log(PANIC, l.depth, l.field, args...)
+}
+
+func (l *xlog) Panicln(args ...interface{}) {
+	l.logging.Log(PANIC, l.depth, l.field, args...)
+}
+
+func (l *xlog) Panicf(fmt string, args ...interface{}) {
+	l.logging.Log(PANIC, l.depth, l.field, args...)
+}
+
 func (l *xlog) Fatal(args ...interface{}) {
 	l.logging.Log(FATAL, l.depth, l.field, args...)
 }

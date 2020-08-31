@@ -29,6 +29,12 @@ type LogError interface {
 	Errorf(fmt string, args ...interface{})
 }
 
+type LogPanic interface {
+	Panic(args ...interface{})
+	Panicln(args ...interface{})
+	Panicf(fmt string, args ...interface{})
+}
+
 type LogFatal interface {
 	Fatal(args ...interface{})
 	Fatalln(args ...interface{})
@@ -40,6 +46,7 @@ type Logger interface {
 	LogInfo
 	LogWarn
 	LogError
+	LogPanic
 	LogFatal
 
 	WithName(name string) Logger
