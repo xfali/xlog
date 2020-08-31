@@ -23,8 +23,22 @@ func TestFactoryTag(t *testing.T) {
 	logger.WithName("test2")
 	logger.Warnln("test2")
 
-	type A struct{}
-	logger = xlog.GetLogger(A{})
+	type TestStructInTest struct{}
+	logger = xlog.GetLogger(TestStructInTest{})
+	logger.Warnln("A")
+
+	logger = xlog.GetLogger(1)
+	logger.Warnln("int")
+}
+
+func TestFactorySimplifyName(t *testing.T) {
+	fac := xlog.NewFactory(xlog.NewLogging())
+	fac.SimplifyNameFunc = xlog.SimplifyNameFirstLetter
+
+	xlog.ResetFactory(fac)
+
+	type TestStructInTest struct{}
+	logger := xlog.GetLogger(TestStructInTest{})
 	logger.Warnln("A")
 
 	logger = xlog.GetLogger(1)
