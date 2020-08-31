@@ -42,6 +42,9 @@ func TestLoggingln(t *testing.T) {
 
 func TestLoggingWithFormat(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
-	l := xlog.NewLogging(xlog.SetFormatter(&xlog.TextFormatter{}))
+	l := xlog.NewLogging()
+	l.SetFormatter(&xlog.TextFormatter{
+		TimeFormat: xlog.TimeFormat,
+	})
 	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "ERROR", " test")
 }

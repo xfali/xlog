@@ -10,25 +10,34 @@ import (
 	"sync/atomic"
 )
 
-type LoggerFactory struct {
+type LoggerFactory interface {
+	GetLogger(o ...interface{}) Logger
+	Reset(logging Logging) LoggerFactory
+}
+
+type loggerFactory struct {
 	value atomic.Value
 }
 
-var defaultFactory = newFactory(defaultLogging)
+var defaultFactory = NewFactory(defaultLogging)
 
-func NewFactory(opts ...LoggingOpt) *LoggerFactory {
-	ret := &LoggerFactory{}
+func NewDefaultFactory(opts ...LoggingOpt) LoggerFactory {
+	ret := &loggerFactory{}
 	ret.value.Store(NewLogging(opts...))
 	return ret
 }
 
-func newFactory(logging *Logging) *LoggerFactory {
-	ret := &LoggerFactory{}
+func NewFactory(logging Logging) LoggerFactory {
+	ret := &loggerFactory{}
 	ret.value.Store(logging)
 	return ret
 }
 
-func ResetFactory(logging *Logging) {
+func ResetFactory(fac LoggerFactory) {
+	defaultFactory = fac
+}
+
+func ResetFactoryLogging(logging Logging) {
 	defaultFactory.Reset(logging)
 }
 
@@ -36,19 +45,19 @@ func GetLogger(o ...interface{}) Logger {
 	return defaultFactory.GetLogger(o...)
 }
 
-func (fac *LoggerFactory) GetLogger(o ...interface{}) Logger {
+func (fac *loggerFactory) GetLogger(o ...interface{}) Logger {
 	if len(o) == 0 {
-		return NewLogger(fac.value.Load().(*Logging))
+		return NewLogger(fac.value.Load().(Logging))
 	} else {
 		t := reflect.TypeOf(o[0])
 		if t.Kind() == reflect.String {
-			return NewLogger(fac.value.Load().(*Logging), o[0].(string))
+			return NewLogger(fac.value.Load().(Logging), o[0].(string))
 		}
-		return NewLogger(fac.value.Load().(*Logging), t.String())
+		return NewLogger(fac.value.Load().(Logging), t.String())
 	}
 }
 
-func (fac *LoggerFactory) Reset(logging *Logging) *LoggerFactory {
+func (fac *loggerFactory) Reset(logging Logging) LoggerFactory {
 	fac.value.Store(logging)
 	return fac
 }

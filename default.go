@@ -6,17 +6,17 @@
 package xlog
 
 type xlog struct {
-	logging *Logging
+	logging Logging
 	depth   int
 	field   Field
 	name    string
 }
 
-func NewLogger(logging *Logging, name ...string) Logger {
+func NewLogger(logging Logging, name ...string) Logger {
 	return newLogger(logging, name...)
 }
 
-func newLogger(logging *Logging, name ...string) *xlog {
+func newLogger(logging Logging, name ...string) *xlog {
 	var t string
 	if len(name) > 0 {
 		t = name[0]

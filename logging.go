@@ -36,10 +36,10 @@ const (
 )
 
 const (
-	KeyTimestamp = "Timestamp"
+	KeyTimestamp     = "Timestamp"
 	KeySeverityLevel = "Severity"
-	KeyFileLine = "FileLine"
-	KeyLog = "Log"
+	KeyFileLine      = "FileLine"
+	KeyLog           = "Log"
 )
 
 var (
@@ -79,22 +79,6 @@ var gLogTag = map[int]string{
 	FATAL: "Fatal",
 }
 
-type LoggingOpt func(l *Logging)
-
-type Logging struct {
-	timeFormatter func(t time.Time) string
-	formatter     Formatter
-	colorFlag     int
-	fileFlag      int
-	fatalNoTrace  bool
-
-	level int
-
-	writers map[int]io.Writer
-
-	bufPool sync.Pool
-}
-
 var (
 	ColorFlag     = AutoColor
 	PrintFileFlag = ShortFile
@@ -109,10 +93,37 @@ var (
 	}
 )
 
+type LoggingOpt func(l *logging)
+
+type Logging interface {
+	Logf(level int, depth int, field Field, format string, args ...interface{})
+	Log(level int, depth int, field Field, args ...interface{})
+	Logln(level int, depth int, field Field, args ...interface{})
+
+	SetFormatter(f Formatter)
+	SetSeverityLevel(severityLevel int)
+	SetOutput(w io.Writer)
+	SetOutputBySeverity(severityLevel int, w io.Writer)
+}
+
+type logging struct {
+	timeFormatter func(t time.Time) string
+	formatter     Formatter
+	colorFlag     int
+	fileFlag      int
+	fatalNoTrace  bool
+
+	level int
+
+	writers map[int]io.Writer
+
+	bufPool sync.Pool
+}
+
 var defaultLogging = NewLogging()
 
-func NewLogging(opts ...LoggingOpt) *Logging {
-	ret := &Logging{
+func NewLogging(opts ...LoggingOpt) Logging {
+	ret := &logging{
 		timeFormatter: TimeFormat,
 		colorFlag:     ColorFlag,
 		fileFlag:      PrintFileFlag,
@@ -132,7 +143,7 @@ func NewLogging(opts ...LoggingOpt) *Logging {
 	return ret
 }
 
-func (l *Logging) format(writer io.Writer, level, depth int, field Field, log string) {
+func (l *logging) format(writer io.Writer, level, depth int, field Field, log string) {
 	var (
 		file string
 		line int
@@ -169,21 +180,34 @@ func (l *Logging) format(writer io.Writer, level, depth int, field Field, log st
 		l.formatter.Format(writer, field)
 	} else {
 		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] %s %s",
-			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, formatField(field), log)
+			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, l.formatField(field), log)
 	}
 }
 
-func formatField(field Field) string{
+func (l *logging) formatField(field Field) string {
 	if field == nil {
 		return ""
 	}
 
 	buf := bytes.Buffer{}
 	for _, k := range field.Keys() {
-		buf.WriteString(formatValue(field.Get(k)))
+		buf.WriteString(l.formatValue(field.Get(k)))
 		buf.WriteByte(' ')
 	}
 	return buf.String()
+}
+
+func (l *logging) formatValue(o interface{}) string {
+	if o == nil {
+		return ""
+	}
+
+	if t, ok := o.(time.Time); ok {
+		if l.timeFormatter != nil {
+			return l.timeFormatter(t)
+		}
+	}
+	return formatValue(o)
 }
 
 func selectLevelColor(level int) string {
@@ -197,7 +221,7 @@ func selectLevelColor(level int) string {
 	return ""
 }
 
-func (l *Logging) Logf(level int, depth int, field Field, format string, args ...interface{}) {
+func (l *logging) Logf(level int, depth int, field Field, format string, args ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -221,7 +245,7 @@ func (l *Logging) Logf(level int, depth int, field Field, format string, args ..
 	//l.output(level, buf)
 }
 
-func (l *Logging) Log(level int, depth int, field Field, args ...interface{}) {
+func (l *logging) Log(level int, depth int, field Field, args ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -237,7 +261,7 @@ func (l *Logging) Log(level int, depth int, field Field, args ...interface{}) {
 	}
 }
 
-func (l *Logging) Logln(level int, depth int, field Field, args ...interface{}) {
+func (l *logging) Logln(level int, depth int, field Field, args ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -253,13 +277,13 @@ func (l *Logging) Logln(level int, depth int, field Field, args ...interface{}) 
 	}
 }
 
-func (l *Logging) getBuffer() *bytes.Buffer {
+func (l *logging) getBuffer() *bytes.Buffer {
 	buf := l.bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	return buf
 }
 
-func (l *Logging) putBuffer(buf *bytes.Buffer) {
+func (l *logging) putBuffer(buf *bytes.Buffer) {
 	if buf == nil {
 		return
 	}
@@ -270,7 +294,7 @@ func (l *Logging) putBuffer(buf *bytes.Buffer) {
 	l.bufPool.Put(buf)
 }
 
-func (l *Logging) processFatal(writer io.Writer) {
+func (l *logging) processFatal(writer io.Writer) {
 	if !l.fatalNoTrace {
 		trace := stacks(true)
 		writer.Write(trace)
@@ -278,7 +302,7 @@ func (l *Logging) processFatal(writer io.Writer) {
 	os.Exit(-1)
 }
 
-//func (l *Logging) output(level int) {
+//func (l *logging) output(level int) {
 //	if level >= FATAL {
 //		if !l.fatalNoTrace {
 //			trace := stacks(true)
@@ -293,12 +317,30 @@ func (l *Logging) processFatal(writer io.Writer) {
 //	l.putBuffer(buf)
 //}
 
-func (l *Logging) selectWriter(level int) io.Writer {
+func (l *logging) selectWriter(level int) io.Writer {
 	w := l.writers[level]
 	if w == nil {
 		return os.Stdout
 	}
 	return w
+}
+
+func (l *logging) SetFormatter(f Formatter) {
+	l.formatter = f
+}
+
+func (l *logging) SetSeverityLevel(severity int) {
+	l.level = severity
+}
+
+func (l *logging) SetOutput(w io.Writer) {
+	for i := DEBUG; i <= FATAL; i++ {
+		l.writers[i] = w
+	}
+}
+
+func (l *logging) SetOutputBySeverity(severityLevel int, w io.Writer) {
+	l.writers[severityLevel] = w
 }
 
 func shortFile(file string) string {
@@ -333,59 +375,49 @@ func TimeFormat(t time.Time) string {
 	return timeString
 }
 
-func SetTimeFormatter(f func(t time.Time) string) func(*Logging) {
-	return func(logging *Logging) {
+func SetTimeFormatter(f func(t time.Time) string) func(*logging) {
+	return func(logging *logging) {
 		logging.timeFormatter = f
 	}
 }
 
-func SetFormatter(f Formatter) func(*Logging) {
-	return func(logging *Logging) {
-		logging.formatter = f
-	}
-}
-
-func SetColorFlag(flag int) func(*Logging) {
-	return func(logging *Logging) {
+func SetColorFlag(flag int) func(*logging) {
+	return func(logging *logging) {
 		logging.colorFlag = flag
 	}
 }
 
-func SetShowFileFlag(flag int) func(*Logging) {
-	return func(logging *Logging) {
+func SetShowFileFlag(flag int) func(*logging) {
+	return func(logging *logging) {
 		logging.fileFlag = flag
 	}
 }
 
-func SetFatalNoTrace(noTrace bool) func(*Logging) {
-	return func(logging *Logging) {
+func SetFatalNoTrace(noTrace bool) func(*logging) {
+	return func(logging *logging) {
 		logging.fatalNoTrace = noTrace
 	}
 }
 
-func SetLogSeverity(severity int) func(*Logging) {
-	return func(logging *Logging) {
-		logging.level = severity
-	}
+func SetFormatter(f Formatter) {
+	defaultLogging.SetFormatter(f)
 }
 
-func SetOutput(w io.Writer) func(*Logging) {
-	return func(logging *Logging) {
-		for i := DEBUG; i <= FATAL; i++ {
-			logging.writers[i] = w
-		}
-	}
+func SetSeverityLevel(severity int) {
+	defaultLogging.SetSeverityLevel(severity)
 }
 
-func SetOutputBySeverity(severity int, w io.Writer) func(*Logging) {
-	return func(logging *Logging) {
-		logging.writers[severity] = w
-	}
+func SetOutput(w io.Writer) {
+	defaultLogging.SetOutput(w)
 }
 
-func Init(logging *Logging) {
+func SetOutputBySeverity(severity int, w io.Writer) {
+	defaultLogging.SetOutputBySeverity(severity, w)
+}
+
+func Init(logging Logging) {
 	defaultLogging = logging
-	ResetFactory(logging)
+	ResetFactoryLogging(logging)
 }
 
 const autogeneratedFrameName = "<autogenerated>"

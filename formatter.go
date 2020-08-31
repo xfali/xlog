@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 )
 
 type Iterator interface {
@@ -63,7 +64,7 @@ func (f *defaultField) Add(keyAndValues ...interface{}) error {
 			}
 			k = s
 			if _, ok := kvs[k]; !ok {
-				f[0]= append(f[0].([]string), k)
+				f[0] = append(f[0].([]string), k)
 			}
 		} else {
 			kvs[k] = keyAndValues[i]
@@ -119,11 +120,9 @@ func (c *defaultIterator) Next() (string, interface{}) {
 	return v, c.field[1].(map[string]interface{})[v]
 }
 
-type BaseFormatter struct {
-}
-
 type TextFormatter struct {
-	SortFunc func([]string)
+	TimeFormat func(t time.Time) string
+	SortFunc   func([]string)
 }
 
 func (f *TextFormatter) Format(writer io.Writer, field Field) error {
@@ -140,12 +139,25 @@ func (f *TextFormatter) Format(writer io.Writer, field Field) error {
 	for _, k := range keys {
 		buf.WriteString(k)
 		buf.WriteByte('=')
-		buf.WriteString(formatValue(field.Get(k)))
+		buf.WriteString(f.formatValue(field.Get(k)))
 		buf.WriteByte(' ')
 	}
 
 	_, err := writer.Write(buf.Bytes())
 	return err
+}
+
+func (f *TextFormatter) formatValue(o interface{}) string {
+	if o == nil {
+		return ""
+	}
+
+	if t, ok := o.(time.Time); ok {
+		if f.TimeFormat != nil {
+			return f.TimeFormat(t)
+		}
+	}
+	return formatValue(o)
 }
 
 func formatValue(o interface{}) string {
