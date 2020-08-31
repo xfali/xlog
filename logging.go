@@ -40,6 +40,7 @@ const (
 	KeySeverityLevel = "Severity"
 	KeyFileLine      = "FileLine"
 	KeyLog           = "Log"
+	KeyName          = "LogName"
 )
 
 var (
@@ -72,11 +73,11 @@ var (
 )
 
 var gLogTag = map[int]string{
-	DEBUG: "Debug",
-	INFO:  "Info",
-	WARN:  "Warn",
-	ERROR: "Error",
-	FATAL: "Fatal",
+	DEBUG: "DEBUG",
+	INFO:  "INFO",
+	WARN:  "WARN",
+	ERROR: "ERROR",
+	FATAL: "FATAL",
 }
 
 var (
@@ -102,6 +103,7 @@ type Logging interface {
 
 	SetFormatter(f Formatter)
 	SetSeverityLevel(severityLevel int)
+	IsEnable(severityLevel int) bool
 	SetOutput(w io.Writer)
 	SetOutputBySeverity(severityLevel int, w io.Writer)
 }
@@ -120,9 +122,9 @@ type logging struct {
 	bufPool sync.Pool
 }
 
-var defaultLogging = NewLogging()
+var DefaultLogging Logging = NewLogging()
 
-func NewLogging(opts ...LoggingOpt) Logging {
+func NewLogging(opts ...LoggingOpt) *logging {
 	ret := &logging{
 		timeFormatter: TimeFormat,
 		colorFlag:     ColorFlag,
@@ -329,8 +331,16 @@ func (l *logging) SetFormatter(f Formatter) {
 	l.formatter = f
 }
 
+func (l *logging) GetFormatter() Formatter {
+	return l.formatter
+}
+
 func (l *logging) SetSeverityLevel(severity int) {
 	l.level = severity
+}
+
+func (l *logging) IsEnable(severityLevel int) bool {
+	return l.level <= severityLevel
 }
 
 func (l *logging) SetOutput(w io.Writer) {
@@ -400,23 +410,23 @@ func SetFatalNoTrace(noTrace bool) func(*logging) {
 }
 
 func SetFormatter(f Formatter) {
-	defaultLogging.SetFormatter(f)
+	DefaultLogging.SetFormatter(f)
 }
 
 func SetSeverityLevel(severity int) {
-	defaultLogging.SetSeverityLevel(severity)
+	DefaultLogging.SetSeverityLevel(severity)
 }
 
 func SetOutput(w io.Writer) {
-	defaultLogging.SetOutput(w)
+	DefaultLogging.SetOutput(w)
 }
 
 func SetOutputBySeverity(severity int, w io.Writer) {
-	defaultLogging.SetOutputBySeverity(severity, w)
+	DefaultLogging.SetOutputBySeverity(severity, w)
 }
 
 func Init(logging Logging) {
-	defaultLogging = logging
+	DefaultLogging = logging
 	ResetFactoryLogging(logging)
 }
 

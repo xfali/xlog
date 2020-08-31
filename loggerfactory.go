@@ -19,7 +19,7 @@ type loggerFactory struct {
 	value atomic.Value
 }
 
-var defaultFactory = NewFactory(defaultLogging)
+var defaultFactory = NewFactory(DefaultLogging)
 
 func NewDefaultFactory(opts ...LoggingOpt) LoggerFactory {
 	ret := &loggerFactory{}
