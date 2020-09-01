@@ -380,12 +380,16 @@ func (l *logging) IsEnable(severityLevel int) bool {
 	return l.level <= severityLevel
 }
 
+// Logging不会自动为输出的Writer加锁，如果需要加锁请使用LockedWriter：
+// logging.SetOutPut(&writer.LockedWriter{w})
 func (l *logging) SetOutput(w io.Writer) {
 	for i := DEBUG; i <= FATAL; i++ {
 		l.writers[i] = w
 	}
 }
 
+// Logging不会自动为输出的Writer加锁，如果需要加锁请使用LockedWriter：
+// logging.SetOutputBySeverity(level, &writer.LockedWriter{w})
 func (l *logging) SetOutputBySeverity(severityLevel int, w io.Writer) {
 	l.writers[severityLevel] = w
 }
@@ -488,16 +492,3 @@ func FramesToCaller() int {
 	return 1
 }
 
-// Logging不会自动为输出的Writer加锁，如果需要加锁请使用这个封装工具：
-// logging.SetOutPut(&LockWriter{ W: output_writer })
-type LockWriter struct {
-	lock sync.Mutex
-	W    io.Writer
-}
-
-func (lw *LockWriter) Write(d []byte) (int, error) {
-	lw.lock.Lock()
-	defer lw.lock.Unlock()
-
-	return lw.W.Write(d)
-}
