@@ -92,6 +92,7 @@ var gLogTag = map[Level]string{
 	INFO:  "INFO",
 	WARN:  "WARN",
 	ERROR: "ERROR",
+	PANIC: "PANIC",
 	FATAL: "FATAL",
 }
 
@@ -158,7 +159,7 @@ type logging struct {
 
 var DefaultLogging Logging = NewLogging()
 
-func NewLogging(opts ...LoggingOpt) *logging {
+func NewLogging(opts ...LoggingOpt) Logging {
 	ret := &logging{
 		timeFormatter: TimeFormat,
 		colorFlag:     DefaultColorFlag,

@@ -48,3 +48,23 @@ func TestLoggingWithFormat(t *testing.T) {
 	})
 	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "ERROR", " test")
 }
+
+func TestLoggingHook(t *testing.T) {
+	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	l := xlog.NewLogging()
+	l = xlog.NewHookLevelLogging(l, func(level xlog.Level) xlog.Level {
+		return level - 1
+	})
+	// not print
+	l.Logln(xlog.DEBUG, 0, nil, "DEBUG", " test")
+	// not print
+	l.Logln(xlog.INFO, 0, nil, "INFO", " test")
+	// lv hook -> INFO
+	l.Logln(xlog.WARN, 0, nil, "WARN", " test")
+	// lv hook -> WARN
+	l.Logln(xlog.ERROR, 0, nil, "ERROR", " test")
+	// lv hook -> ERROR
+	l.Logln(xlog.PANIC, 0, nil, "PANIC", " test")
+	// lv hook -> PANIC
+	l.Logln(xlog.FATAL, 0, nil, "FATAL", " test")
+}
