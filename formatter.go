@@ -76,11 +76,11 @@ func (f *defaultField) Add(keyAndValues ...interface{}) error {
 	return nil
 }
 
-func (f *defaultField) GetAll() map[string]interface{} {
+func (f defaultField) GetAll() map[string]interface{} {
 	return f[1].(map[string]interface{})
 }
 
-func (f *defaultField) Iterator() Iterator {
+func (f defaultField) Iterator() Iterator {
 	return &defaultIterator{
 		field: f,
 		cur:   0,
@@ -117,17 +117,22 @@ func (f defaultField) Len() int {
 }
 
 func (f defaultField) Clone() Field {
-	ret := NewField()
+	ret := &defaultField{}
+	keys := make([]string, len(f[0].([]string)))
+	kvs := make(map[string]interface{}, len(f[1].(map[string]interface{})))
 
-	for _, k := range f.Keys() {
-		ret.Add(k, f.Get(k))
+	copy(keys, f[0].([]string))
+	for _, k := range keys {
+		kvs[k] = f[1].(map[string]interface{})[k]
 	}
+	ret[0] = keys
+	ret[1] = kvs
 
 	return ret
 }
 
 type defaultIterator struct {
-	field *defaultField
+	field defaultField
 	cur   int
 }
 

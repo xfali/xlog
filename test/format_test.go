@@ -42,6 +42,18 @@ func TestField(t *testing.T) {
 		x, v := it.Next()
 		t.Log("iterator", x, v)
 	}
+
+	clone := field.Clone()
+	t.Log("after Clone float")
+	it = clone.Iterator()
+	for it.HasNext() {
+		x, v := it.Next()
+		t.Log("iterator", x, v)
+	}
+
+	for k, v := range clone.GetAll() {
+		t.Log("key: ", k, " value: ", v)
+	}
 }
 
 func TestTextFormatter(t *testing.T) {
