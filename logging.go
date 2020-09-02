@@ -107,6 +107,7 @@ var (
 		INFO:  os.Stdout,
 		WARN:  os.Stdout,
 		ERROR: os.Stderr,
+		PANIC: os.Stderr,
 		FATAL: os.Stderr,
 	}
 )
@@ -388,11 +389,14 @@ func (l *logging) Clone() Logging {
 //}
 
 func (l *logging) selectWriter(level Level) io.Writer {
-	w := l.writers[level]
-	if w == nil {
-		return os.Stdout
+	var w io.Writer
+	for i := level; i >= DEBUG; i-- {
+		w = l.writers[i]
+		if w != nil {
+			return w
+		}
 	}
-	return w
+	return os.Stdout
 }
 
 func (l *logging) SetFormatter(f Formatter) {

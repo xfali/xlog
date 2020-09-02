@@ -17,6 +17,7 @@ func TestLoggingf(t *testing.T) {
 	l.Logf(xlog.INFO, 0, nil, "INFO test\n")
 	l.Logf(xlog.WARN, 0, xlog.NewField("mytest", "mytest"), "WARN test\n")
 	l.Logf(xlog.ERROR, 0, nil, "ERROR test")
+	l.Logf(xlog.PANIC, 0, nil, "PANIC test")
 	l.Logf(xlog.FATAL, 0, nil, "FATAL test\n")
 }
 
