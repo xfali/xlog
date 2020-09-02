@@ -25,8 +25,9 @@ type AsyncBufferLogWriter struct {
 	logChan   chan []byte
 	logBuffer bytes.Buffer
 	FlushSize int64
-	w         io.WriteCloser
+	w         io.Writer
 	block     bool
+	once      sync.Once
 }
 
 type Config struct {
@@ -52,7 +53,7 @@ var defaultConfig = Config{
 
 // 带Buffer的Writer，本身Write、Close方法线程安全，参数WriteCloser可以非线程安全
 // Param: w - 实际写入的Writer， c - Writer的配置，如果不传入则使用默认值，否则使用第1个配置。
-func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
+func NewAsyncBufferWriter(w io.Writer, c ...Config) *AsyncBufferLogWriter {
 	conf := defaultConfig
 	if len(c) > 0 {
 		conf = c[0]
@@ -86,7 +87,6 @@ func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
 					l.writeLog(<-l.logChan)
 				}
 				l.Flush()
-				w.Close()
 			}
 		}()
 		ticker := time.NewTicker(conf.FlushInterval)
@@ -132,8 +132,10 @@ func (w *AsyncBufferLogWriter) writeLog(data []byte) error {
 }
 
 func (w *AsyncBufferLogWriter) Close() error {
-	close(w.stopChan)
-	w.wait.Wait()
+	w.once.Do(func() {
+		close(w.stopChan)
+		w.wait.Wait()
+	})
 	return nil
 }
 
