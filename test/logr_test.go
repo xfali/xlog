@@ -19,12 +19,12 @@ func TestLogr(t *testing.T) {
 		t.Fatal("logr is disabled")
 	}
 
-	logr = logr.V(xlog.DEBUG)
+	logr = logr.V(xlogr.Level2Int(xlog.DEBUG))
 	if logr.Enabled() {
 		t.Fatal("logr is enable")
 	}
 
-	logr = logr.V(xlog.WARN)
+	logr = logr.V(xlogr.Level2Int(xlog.WARN))
 	if !logr.Enabled() {
 		t.Fatal("logr is disabled")
 	}
@@ -46,12 +46,12 @@ func TestLogr2(t *testing.T) {
 		t.Fatal("logr is disabled")
 	}
 
-	logr = logr.V(xlog.DEBUG)
+	logr = logr.V(xlogr.Level2Int(xlog.DEBUG))
 	if logr.Enabled() {
 		t.Fatal("logr is enable")
 	}
 
-	logr = logr.V(xlog.WARN)
+	logr = logr.V(xlogr.Level2Int(xlog.WARN))
 	if !logr.Enabled() {
 		t.Fatal("logr is disabled")
 	}

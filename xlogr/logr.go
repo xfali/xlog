@@ -17,7 +17,7 @@ var (
 
 type xlogr struct {
 	logging xlog.Logging
-	level   int
+	level   xlog.Level
 	field   xlog.Field
 	name    string
 }
@@ -33,7 +33,7 @@ func NewLogrWithLogging(logging xlog.Logging) logr.Logger {
 	ret := &xlogr{
 		logging: logging,
 		field:   xlog.NewField(),
-		level:   xlog.Level,
+		level:   xlog.DefaultLevel,
 	}
 	//if formatter != nil {
 	//	ret.logging.SetFormatter(formatter)
@@ -82,11 +82,19 @@ func (l *xlogr) Error(err error, msg string, keysAndValues ...interface{}) {
 // level less than zero.
 func (l *xlogr) V(level int) logr.Logger {
 	return &xlogr{
-		level:   level,
+		level:   Int2Level(level),
 		field:   l.field.Clone(),
 		logging: l.logging,
 		name:    l.name,
 	}
+}
+
+func Int2Level(level int) xlog.Level {
+	return xlog.Level(level)
+}
+
+func Level2Int(level xlog.Level) int {
+	return int(level)
 }
 
 // WithValues adds some key-value pairs of context to a logger.

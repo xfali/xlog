@@ -7,6 +7,7 @@
 package writer
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"time"
@@ -18,14 +19,12 @@ const (
 )
 
 type AsyncBufferLogWriter struct {
-	stopChan   chan bool
-	logChan    chan []byte
-	logBuffers [][]byte
-	curBuf     int
-	curSize    int64
-	FlushSize  int64
-	w          io.WriteCloser
-	block      bool
+	stopChan  chan bool
+	logChan   chan []byte
+	logBuffer bytes.Buffer
+	FlushSize int64
+	w         io.WriteCloser
+	block     bool
 }
 
 type Config struct {
@@ -57,13 +56,13 @@ func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
 		conf = c[0]
 	}
 	l := AsyncBufferLogWriter{
-		stopChan:   make(chan bool),
-		logChan:    make(chan []byte, conf.BufferSize),
-		logBuffers: make([][]byte, conf.BufferSize),
-		FlushSize:  conf.FlushSize,
-		w:          w,
-		block:      conf.Block,
+		stopChan:  make(chan bool),
+		logChan:   make(chan []byte, conf.BufferSize),
+		FlushSize: conf.FlushSize,
+		w:         w,
+		block:     conf.Block,
 	}
+	l.logBuffer.Grow(conf.BufferSize * 10)
 
 	go func() {
 		defer func() {
@@ -92,24 +91,19 @@ func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
 
 func (w *AsyncBufferLogWriter) Flush() error {
 	if w.w != nil {
-		for i := 0; i < w.curBuf; i++ {
-			_, err := w.w.Write(w.logBuffers[i])
-			if err != nil {
-				return err
-			}
+		_, err := w.w.Write(w.logBuffer.Bytes())
+		if err != nil {
+			return err
 		}
 	}
-	w.curBuf = 0
-	w.curSize = 0
+	w.logBuffer.Reset()
 	return nil
 }
 
 func (w *AsyncBufferLogWriter) writeLog(data []byte) error {
-	w.curSize += int64(len(data))
-	w.logBuffers[w.curBuf] = data
-	w.curBuf++
+	w.logBuffer.Write(data)
 
-	if w.curSize < w.FlushSize {
+	if int64(w.logBuffer.Len()) < w.FlushSize {
 		return nil
 	}
 
@@ -118,9 +112,6 @@ func (w *AsyncBufferLogWriter) writeLog(data []byte) error {
 
 func (w *AsyncBufferLogWriter) Close() error {
 	close(w.stopChan)
-	if w.w != nil {
-		return w.w.Close()
-	}
 	return nil
 }
 

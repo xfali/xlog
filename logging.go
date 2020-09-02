@@ -15,13 +15,15 @@ import (
 	"time"
 )
 
+type Level int
+
 const (
-	DEBUG = iota
-	INFO
-	WARN
-	ERROR
-	PANIC
-	FATAL
+	DEBUG Level = 0
+	INFO  Level = 1
+	WARN  Level = 2
+	ERROR Level = 3
+	PANIC Level = 4
+	FATAL Level = 5
 )
 
 const (
@@ -85,7 +87,7 @@ var (
 )
 
 // 级别及名称映射
-var gLogTag = map[int]string{
+var gLogTag = map[Level]string{
 	DEBUG: "DEBUG",
 	INFO:  "INFO",
 	WARN:  "WARN",
@@ -95,11 +97,11 @@ var gLogTag = map[int]string{
 
 // 默认值
 var (
-	ColorFlag     = AutoColor
-	PrintFileFlag = ShortFile
-	FatalNoTrace  = false
-	Level         = INFO
-	Writers       = map[int]io.Writer{
+	DefaultColorFlag     = AutoColor
+	DefaultPrintFileFlag = ShortFile
+	DefaultFatalNoTrace  = false
+	DefaultLevel         = INFO
+	DefaultWriters       = map[Level]io.Writer{
 		DEBUG: os.Stdout,
 		INFO:  os.Stdout,
 		WARN:  os.Stdout,
@@ -114,30 +116,30 @@ type LoggingOpt func(l *logging)
 type Logging interface {
 	// 输出format日志（保证线程安全）
 	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， format格式化的格式， args参数
-	Logf(level int, depth int, field Field, format string, args ...interface{})
+	Logf(level Level, depth int, field Field, format string, args ...interface{})
 
 	// 解析并输出参数（保证线程安全）
 	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， args参数
-	Log(level int, depth int, field Field, args ...interface{})
+	Log(level Level, depth int, field Field, args ...interface{})
 
 	// 解析并输出参数，末尾增加换行（保证线程安全）
 	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， args参数
-	Logln(level int, depth int, field Field, args ...interface{})
+	Logln(level Level, depth int, field Field, args ...interface{})
 
 	// 设置日志格式化工具
 	SetFormatter(f Formatter)
 
 	// 设置日志严重级别，低于该级别的将不被输出
-	SetSeverityLevel(severityLevel int)
+	SetSeverityLevel(severityLevel Level)
 
 	// 判断参数级别是否会输出
-	IsEnable(severityLevel int) bool
+	IsEnable(severityLevel Level) bool
 
 	// 设置输出的Writer，注意该方法会将所有级别都配置为参数writer
 	SetOutput(w io.Writer)
 
 	// 设置对应日志级别的Writer
-	SetOutputBySeverity(severityLevel int, w io.Writer)
+	SetOutputBySeverity(severityLevel Level, w io.Writer)
 }
 
 type logging struct {
@@ -147,9 +149,9 @@ type logging struct {
 	fileFlag      int
 	fatalNoTrace  bool
 
-	level int
+	level Level
 
-	writers map[int]io.Writer
+	writers map[Level]io.Writer
 
 	bufPool sync.Pool
 }
@@ -159,12 +161,12 @@ var DefaultLogging Logging = NewLogging()
 func NewLogging(opts ...LoggingOpt) *logging {
 	ret := &logging{
 		timeFormatter: TimeFormat,
-		colorFlag:     ColorFlag,
-		fileFlag:      PrintFileFlag,
-		fatalNoTrace:  FatalNoTrace,
-		level:         Level,
+		colorFlag:     DefaultColorFlag,
+		fileFlag:      DefaultPrintFileFlag,
+		fatalNoTrace:  DefaultFatalNoTrace,
+		level:         DefaultLevel,
 
-		writers: Writers,
+		writers: DefaultWriters,
 
 		bufPool: sync.Pool{New: func() interface{} {
 			return bytes.NewBuffer(nil)
@@ -177,7 +179,7 @@ func NewLogging(opts ...LoggingOpt) *logging {
 	return ret
 }
 
-func (l *logging) format(writer io.Writer, level, depth int, field Field, log string) {
+func (l *logging) format(writer io.Writer, level Level, depth int, field Field, log string) {
 	var (
 		file string
 		line int
@@ -249,7 +251,7 @@ func (l *logging) formatValue(o interface{}) string {
 	return formatValue(o, false)
 }
 
-func selectLevelColor(level int) string {
+func selectLevelColor(level Level) string {
 	if level == INFO {
 		return ForeCyan
 	} else if level == WARN {
@@ -260,7 +262,7 @@ func selectLevelColor(level int) string {
 	return ""
 }
 
-func (l *logging) Logf(level int, depth int, field Field, format string, args ...interface{}) {
+func (l *logging) Logf(level Level, depth int, field Field, format string, args ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -284,7 +286,7 @@ func (l *logging) Logf(level int, depth int, field Field, format string, args ..
 	//l.output(level, buf)
 }
 
-func (l *logging) Log(level int, depth int, field Field, args ...interface{}) {
+func (l *logging) Log(level Level, depth int, field Field, args ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -300,7 +302,7 @@ func (l *logging) Log(level int, depth int, field Field, args ...interface{}) {
 	}
 }
 
-func (l *logging) Logln(level int, depth int, field Field, args ...interface{}) {
+func (l *logging) Logln(level Level, depth int, field Field, args ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -356,7 +358,7 @@ func (l *logging) processFatal(writer io.Writer) {
 //	l.putBuffer(buf)
 //}
 
-func (l *logging) selectWriter(level int) io.Writer {
+func (l *logging) selectWriter(level Level) io.Writer {
 	w := l.writers[level]
 	if w == nil {
 		return os.Stdout
@@ -372,11 +374,11 @@ func (l *logging) GetFormatter() Formatter {
 	return l.formatter
 }
 
-func (l *logging) SetSeverityLevel(severity int) {
+func (l *logging) SetSeverityLevel(severity Level) {
 	l.level = severity
 }
 
-func (l *logging) IsEnable(severityLevel int) bool {
+func (l *logging) IsEnable(severityLevel Level) bool {
 	return l.level <= severityLevel
 }
 
@@ -390,7 +392,7 @@ func (l *logging) SetOutput(w io.Writer) {
 
 // Logging不会自动为输出的Writer加锁，如果需要加锁请使用LockedWriter：
 // logging.SetOutputBySeverity(level, &writer.LockedWriter{w})
-func (l *logging) SetOutputBySeverity(severityLevel int, w io.Writer) {
+func (l *logging) SetOutputBySeverity(severityLevel Level, w io.Writer) {
 	l.writers[severityLevel] = w
 }
 
@@ -460,7 +462,7 @@ func SetFormatter(f Formatter) {
 }
 
 // 设置默认Logging的日志严重级别
-func SetSeverityLevel(severity int) {
+func SetSeverityLevel(severity Level) {
 	DefaultLogging.SetSeverityLevel(severity)
 }
 
@@ -470,7 +472,7 @@ func SetOutput(w io.Writer) {
 }
 
 // 设置默认Logging对应日志级别的输出
-func SetOutputBySeverity(severity int, w io.Writer) {
+func SetOutputBySeverity(severity Level, w io.Writer) {
 	DefaultLogging.SetOutputBySeverity(severity, w)
 }
 
@@ -491,4 +493,3 @@ func FramesToCaller() int {
 	}
 	return 1
 }
-
