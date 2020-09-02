@@ -230,13 +230,13 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 		innerField.Add(KeyContent, log)
 		l.formatter.Format(writer, innerField)
 	} else {
-		writer.Write([]byte(fmt.Sprintf("%s [%s%s%s] %s:%d %s %s",
+		writer.Write([]byte(fmt.Sprintf("%s [%s%s%s] %s:%d %s%s",
 			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, l.formatField(field), log)))
 	}
 }
 
 func (l *logging) formatField(field Field) string {
-	if field == nil {
+	if field == nil || field.Len() == 0 {
 		return ""
 	}
 

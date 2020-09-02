@@ -23,7 +23,7 @@ func newLogger(logging Logging, field Field, name ...string) *xlog {
 	var t string
 	if len(name) > 0 {
 		t = name[0]
-		field.Add(KeyName, name)
+		field.Add(KeyName, t)
 	}
 	return &xlog{
 		logging: logging,
@@ -110,7 +110,10 @@ func (l *xlog) WithName(name string) Logger {
 		return nil
 	}
 
-	ret := newLogger(l.logging, l.field.Clone(), l.name+"."+name)
+	if l.name != "" {
+		name = l.name + "." + name
+	}
+	ret := newLogger(l.logging, l.field.Clone(), name)
 	ret.field.Add(KeyName, ret.name)
 	ret.depth = l.depth
 

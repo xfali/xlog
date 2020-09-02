@@ -18,7 +18,7 @@ func TestFactory(t *testing.T) {
 }
 
 func TestFactoryTag(t *testing.T) {
-	logger := xlog.GetLogger("test")
+	logger := xlog.GetLogger()
 	logger.Warnln("test")
 	logger = logger.WithName("test2")
 	logger.Warnln("test2")
