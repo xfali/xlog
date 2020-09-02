@@ -60,7 +60,7 @@ type Logger interface {
 	WithName(name string) Logger
 
 	// 附加日志信息，注意会附加父Logger的附加信息，如果相同则会覆盖
-	WithField(field Field) Logger
+	WithFields(keyAndValues ...interface{}) Logger
 
 	// 配置日志的调用深度，注意会在父Logger的基础上调整深度
 	WithDepth(depth int) Logger

@@ -20,8 +20,14 @@ func TestFactory(t *testing.T) {
 func TestFactoryTag(t *testing.T) {
 	logger := xlog.GetLogger("test")
 	logger.Warnln("test")
-	logger.WithName("test2")
+	logger = logger.WithName("test2")
 	logger.Warnln("test2")
+	logger = logger.WithName("test3")
+	logger.Warnln("test3")
+	logger = logger.WithFields("FieldKey", "FieldValue")
+	logger.Warnln("test4")
+	logger = logger.WithFields("FieldKey", "FieldValue2")
+	logger.Warnln("test5")
 
 	type TestStructInTest struct{}
 	logger = xlog.GetLogger(TestStructInTest{})

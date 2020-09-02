@@ -27,8 +27,16 @@ func TestField(t *testing.T) {
 		t.Log("iterator", x, v)
 	}
 
-	field.Add("float", 1.1, "string", "test")
+	field.Add("float", 1.1, "string", "test", "int", -1)
 	t.Log("after add twice")
+	it = field.Iterator()
+	for it.HasNext() {
+		x, v := it.Next()
+		t.Log("iterator", x, v)
+	}
+
+	field.Remove("float")
+	t.Log("after remove float")
 	it = field.Iterator()
 	for it.HasNext() {
 		x, v := it.Next()

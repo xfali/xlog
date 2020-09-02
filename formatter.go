@@ -24,6 +24,9 @@ type Field interface {
 	GetAll() map[string]interface{}
 	Keys() []string
 	Get(key string) interface{}
+	Remove(key string) error
+	Len() int
+
 	Iterator() Iterator
 
 	Clone() Field
@@ -90,6 +93,27 @@ func (f defaultField) Keys() []string {
 
 func (f defaultField) Get(key string) interface{} {
 	return f[1].(map[string]interface{})[key]
+}
+
+func (f *defaultField) Remove(key string) error {
+	_, ok := f[1].(map[string]interface{})[key]
+	if ok {
+		delete(f[1].(map[string]interface{}), key)
+		keys := f[0].([]string)
+		for i := 0; i < len(keys); i++ {
+			if keys[i] == key {
+				f[0] = append(keys[:i], keys[i+1:]...)
+				break
+			}
+		}
+		return nil
+	} else {
+		return errors.New("Key not found ")
+	}
+}
+
+func (f defaultField) Len() int {
+	return len(f[0].([]string))
 }
 
 func (f defaultField) Clone() Field {
