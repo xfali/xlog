@@ -6,10 +6,11 @@
 package writer
 
 import (
-	"fmt"
+	"encoding/base64"
 	"github.com/xfali/xlog/writer"
 	"math/rand"
 	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -28,7 +29,10 @@ func TestAsyncWriter(t *testing.T) {
 			for i := 0; i < 10; i++ {
 				atomic.AddInt32(&count, 1)
 				rand.Read(b)
-				fmt.Fprintln(w, string(b))
+				_, err := w.Write([]byte(strconv.Itoa(int(count))+base64.StdEncoding.EncodeToString(b) + "\n"))
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 		}()
 	}
@@ -54,11 +58,25 @@ func TestAsyncBufWriter(t *testing.T) {
 			for i := 0; i < 10; i++ {
 				atomic.AddInt32(&count, 1)
 				rand.Read(b)
-				fmt.Fprintln(w, string(b))
+				_, err := w.Write([]byte(strconv.Itoa(int(count))+base64.StdEncoding.EncodeToString(b) + "\n"))
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 		}()
 	}
 
 	wait.Wait()
+	w.Close()
 	t.Log(count)
+}
+
+func TestRotateFile(t *testing.T) {
+	f := writer.RotateFile{
+		MaxFileSize: 10,
+	}
+	err := f.Open("./test/test.log")
+	if err != nil {
+		t.Fatal(err)
+	}
 }

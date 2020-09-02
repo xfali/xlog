@@ -23,3 +23,22 @@ func (lw *LockedWriter) Write(d []byte) (int, error) {
 
 	return lw.W.Write(d)
 }
+
+type LockedWriteCloser struct {
+	lock sync.Mutex
+	W    io.WriteCloser
+}
+
+func (lw *LockedWriteCloser) Write(d []byte) (int, error) {
+	lw.lock.Lock()
+	defer lw.lock.Unlock()
+
+	return lw.W.Write(d)
+}
+
+func (lw *LockedWriteCloser) Close() error {
+	lw.lock.Lock()
+	defer lw.lock.Unlock()
+
+	return lw.W.Close()
+}

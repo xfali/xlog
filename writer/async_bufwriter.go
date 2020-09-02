@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,7 @@ const (
 )
 
 type AsyncBufferLogWriter struct {
+	wait      sync.WaitGroup
 	stopChan  chan bool
 	logChan   chan []byte
 	logBuffer bytes.Buffer
@@ -54,7 +56,17 @@ func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
 	conf := defaultConfig
 	if len(c) > 0 {
 		conf = c[0]
+		if conf.FlushInterval == 0 {
+			conf.FlushInterval = FlushTime
+		}
+		if conf.BufferSize == 0 {
+			conf.BufferSize = BufferSize
+		}
+		if conf.FlushSize == 0 {
+			conf.FlushSize = FlushSize
+		}
 	}
+
 	l := AsyncBufferLogWriter{
 		stopChan:  make(chan bool),
 		logChan:   make(chan []byte, conf.BufferSize),
@@ -62,11 +74,17 @@ func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
 		w:         w,
 		block:     conf.Block,
 	}
+	l.wait.Add(1)
 	l.logBuffer.Grow(conf.BufferSize * 10)
 
 	go func() {
+		defer l.wait.Done()
 		defer func() {
 			if w != nil {
+				size := len(l.logChan)
+				for i := 0; i < size; i++ {
+					l.writeLog(<-l.logChan)
+				}
 				l.Flush()
 				w.Close()
 			}
@@ -77,12 +95,17 @@ func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
 			select {
 			case <-l.stopChan:
 				return
+			case <-ticker.C:
+				l.Flush()
+			default:
+			}
+			select {
+			case <-l.stopChan:
+				return
 			case d, ok := <-l.logChan:
 				if ok {
 					l.writeLog(d)
 				}
-			case <-ticker.C:
-				l.Flush()
 			}
 		}
 	}()
@@ -90,11 +113,9 @@ func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
 }
 
 func (w *AsyncBufferLogWriter) Flush() error {
-	if w.w != nil {
-		_, err := w.w.Write(w.logBuffer.Bytes())
-		if err != nil {
-			return err
-		}
+	_, err := w.w.Write(w.logBuffer.Bytes())
+	if err != nil {
+		return err
 	}
 	w.logBuffer.Reset()
 	return nil
@@ -112,6 +133,7 @@ func (w *AsyncBufferLogWriter) writeLog(data []byte) error {
 
 func (w *AsyncBufferLogWriter) Close() error {
 	close(w.stopChan)
+	w.wait.Wait()
 	return nil
 }
 
