@@ -74,8 +74,7 @@ func TestAsyncBufWriter(t *testing.T) {
 }
 
 func TestRotateFile(t *testing.T) {
-	f := &writer.RotateFile{
-	}
+	f := &writer.RotateFile{}
 	err := f.Open("./target/test.log")
 	if err != nil {
 		t.Fatal(err)
@@ -234,8 +233,7 @@ func TestRotateFilePartAndTimeWithZip(t *testing.T) {
 }
 
 func TestMultiWriterLog(t *testing.T) {
-	f := &writer.RotateFile{
-	}
+	f := &writer.RotateFile{}
 	err := f.Open("./target/test.log")
 	if err != nil {
 		t.Fatal(err)

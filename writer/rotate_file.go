@@ -81,7 +81,6 @@ func (f *RotateFile) Open(filePath string) error {
 	return f.calcPart()
 }
 
-
 func (f *RotateFile) setTimer() {
 	f.curTimeStr = time.Now().Format(f.timeFormat)
 	t := f.nextTime()
@@ -216,7 +215,6 @@ func (f *RotateFile) Close() error {
 	}
 	return nil
 }
-
 
 func (f *RotateFile) setFrequency(frequency RotateFrequency) {
 	switch frequency {

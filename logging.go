@@ -141,6 +141,9 @@ type Logging interface {
 
 	// 设置对应日志级别的Writer
 	SetOutputBySeverity(severityLevel Level, w io.Writer)
+
+	// 获得一个clone的对象
+	Clone() Logging
 }
 
 type logging struct {
@@ -162,16 +165,21 @@ var DefaultLogging Logging = NewLogging()
 func NewLogging(opts ...LoggingOpt) Logging {
 	ret := &logging{
 		timeFormatter: TimeFormat,
+		formatter:     nil,
 		colorFlag:     DefaultColorFlag,
 		fileFlag:      DefaultPrintFileFlag,
 		fatalNoTrace:  DefaultFatalNoTrace,
 		level:         DefaultLevel,
 
-		writers: DefaultWriters,
+		writers: map[Level]io.Writer{},
 
 		bufPool: sync.Pool{New: func() interface{} {
 			return bytes.NewBuffer(nil)
 		}},
+	}
+
+	for k, v := range DefaultWriters {
+		ret.writers[k] = v
 	}
 
 	for _, v := range opts {
@@ -342,6 +350,26 @@ func (l *logging) processFatal(writer io.Writer) {
 		writer.Write(trace)
 	}
 	os.Exit(-1)
+}
+
+func (l *logging) Clone() Logging {
+	ret := &logging{
+		timeFormatter: l.timeFormatter,
+		formatter:     l.formatter,
+		colorFlag:     l.colorFlag,
+		fileFlag:      l.fileFlag,
+		fatalNoTrace:  l.fatalNoTrace,
+		level:         l.level,
+		writers:       map[Level]io.Writer{},
+
+		bufPool: sync.Pool{New: func() interface{} {
+			return bytes.NewBuffer(nil)
+		}},
+	}
+	for k, v := range l.writers {
+		ret.writers[k] = v
+	}
+	return ret
 }
 
 //func (l *logging) output(level int) {
