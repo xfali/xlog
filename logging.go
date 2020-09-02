@@ -220,13 +220,13 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 	//}
 
 	if l.formatter != nil {
-		innerField := NewField()
-		innerField.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, fmt.Sprintf("%s:%d", file, line))
-		MergeFields(innerField, field)
+		innerField := make(Field, 0, 8 + len(field))
+		innerField = append(innerField, KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, fmt.Sprintf("%s:%d", file, line))
+		innerField = MergeFields(innerField, field)
 		if log == "\n" {
 			log = ""
 		}
-		innerField.Add(KeyContent, log)
+		innerField = append(innerField, KeyContent, log)
 		l.formatter.Format(writer, innerField)
 	} else {
 		writer.Write([]byte(fmt.Sprintf("%s [%s%s%s] %s:%d %s %s",
@@ -240,8 +240,9 @@ func (l *logging) formatField(field Field) string {
 	}
 
 	buf := bytes.Buffer{}
-	for _, k := range field.Keys() {
-		buf.WriteString(l.formatValue(field.Get(k)))
+	values := field.Values()
+	for _, k := range values {
+		buf.WriteString(l.formatValue(k))
 		buf.WriteByte(' ')
 	}
 	return buf.String()

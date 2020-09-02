@@ -14,7 +14,7 @@ import (
 )
 
 func TestField(t *testing.T) {
-	field := xlog.NewField()
+	field := xlog.NewKeyValues()
 	err := field.Add("int", 1, "time", time.Now(), "nil")
 	if err != nil {
 		t.Fatal(err)
@@ -37,12 +37,8 @@ func TestField(t *testing.T) {
 }
 
 func TestTextFormatter(t *testing.T) {
-	field := xlog.NewField()
-	err := field.Add("int", 1, "time", time.Now(), "nil", nil, "float", 1.1, "string", "test")
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	field := make(xlog.Field, 0, 10)
+	field = append(field, "int", 1, "time", time.Now(), "nil", nil, "float", 1.1, "string", "test")
 	t.Run("empty", func(t *testing.T) {
 		formatter := xlog.TextFormatter{}
 		err := formatter.Format(os.Stdout, xlog.NewField())
@@ -82,11 +78,8 @@ func TestTextFormatter(t *testing.T) {
 }
 
 func TestJsonFormatter(t *testing.T) {
-	field := xlog.NewField()
-	err := field.Add("int", 1, "time", time.Now(), "nil", nil, "float", 1.1, "string", "test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	field := make(xlog.Field, 0, 10)
+	field = append(field, "int", 1, "time", time.Now(), "nil", nil, "float", 1.1, "string", "test")
 
 	t.Run("none", func(t *testing.T) {
 		formatter := xlog.JsonFormatter{}

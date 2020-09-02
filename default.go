@@ -109,8 +109,9 @@ func (l *xlog) WithName(name string) Logger {
 	if l == nil {
 		return nil
 	}
-	l.field.Add("name", name)
-	ret := newLogger(l.logging, l.field.Clone(), l.name+"."+name)
+	field := l.field.Clone()
+	field = field.Add(KeyName, name)
+	ret := newLogger(l.logging, field, l.name+"."+name)
 	ret.depth = l.depth
 
 	return ret

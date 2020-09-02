@@ -33,6 +33,9 @@ func TestLogr(t *testing.T) {
 	logr = logr.WithValues("123", "abc")
 	logr.Info("this is a test", "time", time.Now(), "float", 3.14)
 	logr.Error(errors.New("test"), "this is a test", "time", time.Now(), "float", 3.14)
+
+	logr = logr.WithName("xxxx")
+	logr.Info("this is a test", "time", time.Now(), "float", 3.14)
 }
 
 func TestLogr2(t *testing.T) {

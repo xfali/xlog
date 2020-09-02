@@ -55,9 +55,10 @@ func (l *xlogr) Enabled() bool {
 // variable information.  The key/value pairs should alternate string
 // keys and arbitrary values.
 func (l *xlogr) Info(msg string, keysAndValues ...interface{}) {
-	field := l.field.Clone()
-	field.Add(KeyLogrMessage, msg)
-	field.Add(keysAndValues...)
+	field := make(xlog.Field, 0, len(l.field) + 2 + len(keysAndValues))
+	field = append(field, l.field...)
+	field = append(field, KeyLogrMessage, msg)
+	field = append(field, keysAndValues...)
 	l.logging.Logln(l.level, 1, field)
 }
 
@@ -70,9 +71,10 @@ func (l *xlogr) Info(msg string, keysAndValues ...interface{}) {
 // while the err field should be used to attach the actual error that
 // triggered this log line, if present.
 func (l *xlogr) Error(err error, msg string, keysAndValues ...interface{}) {
-	field := l.field.Clone()
-	field.Add(KeyLogrMessage, msg, KeyLogrError, err)
-	field.Add(keysAndValues...)
+	field := make(xlog.Field, 0, len(l.field) + 4 + len(keysAndValues))
+	field = append(field, l.field...)
+	field = append(field, KeyLogrMessage, msg, KeyLogrError, err)
+	field = append(field, keysAndValues...)
 	l.logging.Logln(l.level, 1, field)
 }
 
@@ -101,7 +103,7 @@ func Level2Int(level xlog.Level) int {
 // See Info for documentation on how key/value pairs work.
 func (l *xlogr) WithValues(keysAndValues ...interface{}) logr.Logger {
 	field := l.field.Clone()
-	field.Add(keysAndValues...)
+	field = field.Add(keysAndValues...)
 	return &xlogr{
 		level:   l.level,
 		field:   field,
@@ -117,7 +119,7 @@ func (l *xlogr) WithValues(keysAndValues ...interface{}) logr.Logger {
 // (see the package documentation for more information).
 func (l *xlogr) WithName(name string) logr.Logger {
 	field := l.field.Clone()
-	field.Add(xlog.KeyName, name)
+	field = field.Add(xlog.KeyName, name)
 	ret := &xlogr{
 		level:   l.level,
 		logging: l.logging,
