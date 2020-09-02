@@ -50,7 +50,7 @@ var defaultConfig = Config{
 	Block:         true,
 }
 
-// 带Buffer的Writer
+// 带Buffer的Writer，本身Write、Close方法线程安全，参数WriteCloser可以非线程安全
 // Param: w - 实际写入的Writer， c - Writer的配置，如果不传入则使用默认值，否则使用第1个配置。
 func NewAsyncBufferWriter(w io.WriteCloser, c ...Config) *AsyncBufferLogWriter {
 	conf := defaultConfig
@@ -142,12 +142,18 @@ func (w *AsyncBufferLogWriter) Write(data []byte) (n int, err error) {
 		return 0, nil
 	}
 	if w.block {
-		w.logChan <- data
-		return len(data), nil
+		select {
+		case w.logChan <- data:
+			return len(data), nil
+		case <-w.stopChan:
+			return 0, errors.New("writer is closed")
+		}
 	} else {
 		select {
 		case w.logChan <- data:
 			return len(data), nil
+		case <-w.stopChan:
+			return 0, errors.New("writer is closed")
 		default:
 			return 0, errors.New("write log failed ")
 		}

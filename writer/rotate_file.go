@@ -17,10 +17,29 @@ import (
 	"time"
 )
 
+type RotateFrequency int
+
+const (
+	RotateNone      RotateFrequency = 0
+	RotateEveryDay  RotateFrequency = 1
+	RotateEveryHour RotateFrequency = 2
+	// WARNING: for test only!
+	RotateEveryMinute RotateFrequency = 3
+	RotateEverySecond RotateFrequency = 4
+)
+
 type RotateFile struct {
+	// 文件的大小阈值
 	MaxFileSize int64
-	DayRotate   bool
-	RotateFunc  func(dir string, name string, files ...string) error
+	// 滚动频率
+	RotateFrequency RotateFrequency
+	// 滚动文件处理
+	RotateFunc func(dir string, name string, files ...string) error
+
+	// 滚动的时间格式
+	timeFormat string
+	// 滚动的时间间隔
+	rotateDuration time.Duration
 
 	timer      *time.Timer
 	fileName   string
@@ -35,6 +54,9 @@ func (f *RotateFile) Open(filePath string) error {
 	if f.MaxFileSize == 0 {
 		// no limit
 		f.MaxFileSize = math.MaxInt64
+	}
+	if f.timeFormat == "" {
+		f.timeFormat = "2006-01-02"
 	}
 	dir := filepath.Dir(filePath)
 	_, err := os.Stat(dir)
@@ -52,37 +74,51 @@ func (f *RotateFile) Open(filePath string) error {
 	if err != nil {
 		return err
 	}
-	if f.DayRotate {
-		f.curTimeStr = time.Now().Format("2006-01-02")
-		t := f.nextDay()
-		duration := t.Sub(time.Now())
-		if duration < 0 {
-			duration = 1
-		}
-		f.timer = time.NewTimer(duration)
+	if f.RotateFrequency != RotateNone {
+		f.setFrequency(f.RotateFrequency)
+		f.setTimer()
 	}
 	return f.calcPart()
 }
 
+
+func (f *RotateFile) setTimer() {
+	f.curTimeStr = time.Now().Format(f.timeFormat)
+	t := f.nextTime()
+	duration := t.Sub(time.Now())
+	if duration < 0 {
+		duration = 1
+	}
+	f.timer = time.NewTimer(duration)
+}
+
 func (f *RotateFile) Write(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, nil
+	}
 	if f.timer != nil {
 		select {
 		case <-f.timer.C:
 			err := f.rotateDay()
+			f.setTimer()
 			if err != nil {
 				return 0, err
 			}
 		default:
 		}
 	}
-	f.curSize += int64(len(data))
+	n, err := f.file.Write(data)
+	f.curSize += int64(n)
+	if err != nil {
+		return n, err
+	}
 	if f.curSize >= f.MaxFileSize {
 		err := f.rotatePart()
 		if err != nil {
-			return 0, err
+			return n, err
 		}
 	}
-	return f.file.Write(data)
+	return n, err
 }
 
 func (f *RotateFile) rotateDay() error {
@@ -111,7 +147,7 @@ func (f *RotateFile) rotateDay() error {
 		}
 	}
 
-	f.curTimeStr = time.Now().Format("2006-01-02")
+	f.curTimeStr = time.Now().Format(f.timeFormat)
 	return nil
 }
 
@@ -139,9 +175,13 @@ func (f *RotateFile) calcPart() error {
 
 func (f *RotateFile) rotatePart() error {
 	if f.curTimeStr == "" {
-		return f.changeFile(fmt.Sprintf("part%d-%s", f.part, f.fileName))
+		err := f.changeFile(fmt.Sprintf("part%d-%s", f.part, f.fileName))
+		f.part++
+		return err
 	} else {
-		return f.changeFile(fmt.Sprintf("%s-part%d-%s", f.curTimeStr, f.part, f.fileName))
+		err := f.changeFile(fmt.Sprintf("%s-part%d-%s", f.curTimeStr, f.part, f.fileName))
+		f.part++
+		return err
 	}
 }
 
@@ -161,11 +201,10 @@ func (f *RotateFile) changeFile(filename string) error {
 	return nil
 }
 
-func (f *RotateFile) nextDay() time.Time {
-	timeStr := time.Now().Format("2006-01-02")
-	t, _ := time.ParseInLocation("2006-01-02", timeStr, time.Local)
-	t.AddDate(0, 0, 1)
-	return t
+func (f *RotateFile) nextTime() time.Time {
+	timeStr := time.Now().Format(f.timeFormat)
+	t, _ := time.ParseInLocation(f.timeFormat, timeStr, time.Local)
+	return t.Add(f.rotateDuration)
 }
 
 func (f *RotateFile) Close() error {
@@ -175,6 +214,35 @@ func (f *RotateFile) Close() error {
 	if f.file != nil {
 		return f.file.Close()
 	}
+	return nil
+}
+
+
+func (f *RotateFile) setFrequency(frequency RotateFrequency) {
+	switch frequency {
+	case RotateEveryDay:
+		f.rotateDuration = time.Hour * 24
+		f.timeFormat = "2006-01-02"
+		break
+	case RotateEveryHour:
+		f.rotateDuration = time.Hour
+		f.timeFormat = "2006-01-02-15"
+		break
+	case RotateEveryMinute:
+		f.rotateDuration = time.Minute
+		f.timeFormat = "2006-01-02-15-04"
+		break
+	case RotateEverySecond:
+		f.rotateDuration = time.Second
+		f.timeFormat = "2006-01-02-15-04-05"
+		break
+	default:
+		break
+	}
+}
+
+func ZipLogsAsync(dir string, name string, files ...string) error {
+	go ZipLogs(dir, name, files...)
 	return nil
 }
 
@@ -189,10 +257,16 @@ func ZipLogs(dir string, name string, files ...string) error {
 	}
 	defer f.Close()
 	w := zip.NewWriter(f)
+	defer w.Close()
 	for _, v := range files {
 		err := compress(v, w)
 		if err != nil {
 			return err
+		} else {
+			err = os.Remove(v)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -214,7 +288,7 @@ func compress(file string, w *zip.Writer) error {
 		if err != nil {
 			return err
 		}
-		wh, err :=w.CreateHeader(header)
+		wh, err := w.CreateHeader(header)
 		if err != nil {
 			return err
 		}

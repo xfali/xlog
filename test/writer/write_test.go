@@ -29,7 +29,7 @@ func TestAsyncWriter(t *testing.T) {
 			for i := 0; i < 10; i++ {
 				atomic.AddInt32(&count, 1)
 				rand.Read(b)
-				_, err := w.Write([]byte(strconv.Itoa(int(count))+base64.StdEncoding.EncodeToString(b) + "\n"))
+				_, err := w.Write([]byte(strconv.Itoa(int(count)) + base64.StdEncoding.EncodeToString(b) + "\n"))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -58,7 +58,7 @@ func TestAsyncBufWriter(t *testing.T) {
 			for i := 0; i < 10; i++ {
 				atomic.AddInt32(&count, 1)
 				rand.Read(b)
-				_, err := w.Write([]byte(strconv.Itoa(int(count))+base64.StdEncoding.EncodeToString(b) + "\n"))
+				_, err := w.Write([]byte(strconv.Itoa(int(count)) + base64.StdEncoding.EncodeToString(b) + "\n"))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -72,11 +72,157 @@ func TestAsyncBufWriter(t *testing.T) {
 }
 
 func TestRotateFile(t *testing.T) {
-	f := writer.RotateFile{
-		MaxFileSize: 10,
+	f := &writer.RotateFile{
 	}
-	err := f.Open("./test/test.log")
+	err := f.Open("./target/test.log")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	w := writer.NewAsyncBufferWriter(f, writer.Config{
+		FlushSize:     100,
+		BufferSize:    10,
+		FlushInterval: 1 * time.Millisecond,
+		Block:         true,
+	})
+	var count int32 = 0
+	wait := sync.WaitGroup{}
+	wait.Add(20)
+	for i := 0; i < 20; i++ {
+		go func() {
+			defer wait.Done()
+			b := make([]byte, 10)
+			for i := 0; i < 10; i++ {
+				atomic.AddInt32(&count, 1)
+				rand.Read(b)
+				_, err := w.Write([]byte(strconv.Itoa(int(count)) + base64.StdEncoding.EncodeToString(b) + "\n"))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+		}()
+	}
+
+	wait.Wait()
+	w.Close()
+	t.Log(count)
+}
+
+func TestRotateFilePart(t *testing.T) {
+	f := &writer.RotateFile{
+		MaxFileSize: 10,
+	}
+	err := f.Open("./target/test.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := writer.NewAsyncBufferWriter(f, writer.Config{
+		FlushSize:     100,
+		BufferSize:    10,
+		FlushInterval: 1 * time.Millisecond,
+		Block:         true,
+	})
+	var count int32 = 0
+	wait := sync.WaitGroup{}
+	wait.Add(20)
+	for i := 0; i < 20; i++ {
+		go func() {
+			defer wait.Done()
+			b := make([]byte, 10)
+			for i := 0; i < 10; i++ {
+				atomic.AddInt32(&count, 1)
+				rand.Read(b)
+				_, err := w.Write([]byte(strconv.Itoa(int(count)) + base64.StdEncoding.EncodeToString(b) + "\n"))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+		}()
+	}
+
+	wait.Wait()
+	w.Close()
+	t.Log(count)
+}
+
+func TestRotateFilePartAndTime(t *testing.T) {
+	f := &writer.RotateFile{
+		MaxFileSize: 10,
+		RotateFrequency: writer.RotateEverySecond,
+	}
+	err := f.Open("./target/test.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := writer.NewAsyncBufferWriter(f, writer.Config{
+		FlushSize:     100,
+		BufferSize:    10,
+		FlushInterval: 1 * time.Millisecond,
+		Block:         true,
+	})
+	var count int32 = 0
+	wait := sync.WaitGroup{}
+	wait.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wait.Done()
+			b := make([]byte, 10)
+			for j := 0; j < 10; j++ {
+				time.Sleep(300 * time.Millisecond)
+				atomic.AddInt32(&count, 1)
+				rand.Read(b)
+				_, err := w.Write([]byte(strconv.Itoa(int(count)) + base64.StdEncoding.EncodeToString(b) + "\n"))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+		}()
+	}
+
+	wait.Wait()
+	w.Close()
+	t.Log(count)
+}
+
+func TestRotateFilePartAndTimeWithZip(t *testing.T) {
+	f := &writer.RotateFile{
+		MaxFileSize: 10,
+		RotateFrequency: writer.RotateEverySecond,
+		RotateFunc:  writer.ZipLogsAsync,
+	}
+	err := f.Open("./target/test.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := writer.NewAsyncBufferWriter(f, writer.Config{
+		FlushSize:     100,
+		BufferSize:    10,
+		FlushInterval: 1 * time.Millisecond,
+		Block:         true,
+	})
+	var count int32 = 0
+	wait := sync.WaitGroup{}
+	wait.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wait.Done()
+			b := make([]byte, 10)
+			for j := 0; j < 10; j++ {
+				time.Sleep(300 * time.Millisecond)
+				atomic.AddInt32(&count, 1)
+				rand.Read(b)
+				_, err := w.Write([]byte(strconv.Itoa(int(count)) + base64.StdEncoding.EncodeToString(b) + "\n"))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+		}()
+	}
+
+	wait.Wait()
+	w.Close()
+	t.Log(count)
 }

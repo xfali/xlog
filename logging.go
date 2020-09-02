@@ -221,7 +221,7 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 		innerField.Add(KeyContent, log)
 		l.formatter.Format(writer, innerField)
 	} else {
-		fmt.Fprintf(writer, "%s [%s%s%s] [%s:%d] %s %s",
+		fmt.Fprintf(writer, "%s [%s%s%s] %s:%d %s %s",
 			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, l.formatField(field), log)
 	}
 }
