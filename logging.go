@@ -165,6 +165,7 @@ type Logging interface {
 type logging struct {
 	timeFormatter   func(t time.Time) string
 	callerFormatter func(file string, line int, funcName string) string
+	exitFunc        func(code int)
 	formatter       atomic.Value
 	colorFlag       int
 	fileFlag        int
@@ -183,6 +184,7 @@ func NewLogging(opts ...LoggingOpt) Logging {
 	ret := &logging{
 		timeFormatter:   TimeFormat,
 		callerFormatter: CallerFormat,
+		exitFunc:        os.Exit,
 		//formatter:     nil,
 		colorFlag:    DefaultColorFlag,
 		fileFlag:     DefaultPrintFileFlag,
@@ -383,7 +385,7 @@ func (l *logging) processFatal(writer io.Writer) {
 		trace := stacks(true)
 		writer.Write(trace)
 	}
-	os.Exit(-1)
+	l.exitFunc(-1)
 }
 
 func (l *logging) Clone() Logging {
@@ -536,6 +538,13 @@ func SetTimeFormatter(f func(t time.Time) string) func(*logging) {
 func SetCallerFormatter(f func(file string, line int, funcName string) string) func(*logging) {
 	return func(logging *logging) {
 		logging.callerFormatter = f
+	}
+}
+
+// 配置内置Logging Fatal退出处理函数
+func SetExitFunc(f func(int)) func(*logging) {
+	return func(logging *logging) {
+		logging.exitFunc = f
 	}
 }
 

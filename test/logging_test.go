@@ -12,7 +12,9 @@ import (
 
 func TestLoggingf(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
-	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile))
+	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile), xlog.SetExitFunc(func(i int) {
+		t.Log("exit: ", i)
+	}))
 	l.Logf(xlog.DEBUG, 0, nil, "DEBUG test\n")
 	l.Logf(xlog.INFO, 0, nil, "INFO test\n")
 	l.Logf(xlog.WARN, 0, xlog.NewField("mytest", "mytest"), "WARN test\n")
@@ -23,7 +25,9 @@ func TestLoggingf(t *testing.T) {
 
 func TestLogging(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
-	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile | xlog.CallerShortFunc))
+	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile | xlog.CallerShortFunc), xlog.SetExitFunc(func(i int) {
+		t.Log("exit: ", i)
+	}))
 	l.Log(xlog.DEBUG, 0, nil, "DEBUG", " test")
 	l.Log(xlog.INFO, 0, nil, "INFO", " test")
 	l.Log(xlog.WARN, 0, nil, "WARN", " test")
@@ -33,7 +37,9 @@ func TestLogging(t *testing.T) {
 
 func TestLoggingln(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
-	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile | xlog.CallerLongFunc))
+	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile | xlog.CallerLongFunc), xlog.SetExitFunc(func(i int) {
+		t.Log("exit: ", i)
+	}))
 	l.Logln(xlog.DEBUG, 0, nil, "DEBUG", " test")
 	l.Logln(xlog.INFO, 0, nil, "INFO", " test")
 	l.Logln(xlog.WARN, 0, nil, "WARN", " test")
