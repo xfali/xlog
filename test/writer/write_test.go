@@ -20,7 +20,7 @@ import (
 )
 
 func TestAsyncWriter(t *testing.T) {
-	w := writer.NewAsyncWriter(os.Stdout, 10, true)
+	w := writer.NewAsyncWriter(os.Stdout, nil, 10, true)
 	var count int32 = 0
 	wait := sync.WaitGroup{}
 	wait.Add(20)
@@ -41,10 +41,11 @@ func TestAsyncWriter(t *testing.T) {
 
 	wait.Wait()
 	t.Log(count)
+	w.Close()
 }
 
 func TestAsyncBufWriter(t *testing.T) {
-	w := writer.NewAsyncBufferWriter(os.Stdout, writer.Config{
+	w := writer.NewAsyncBufferWriter(os.Stdout, nil, writer.Config{
 		FlushSize:     100,
 		BufferSize:    10,
 		FlushInterval: 1 * time.Millisecond,
@@ -74,14 +75,9 @@ func TestAsyncBufWriter(t *testing.T) {
 }
 
 func TestRotateFile(t *testing.T) {
-	f := &writer.RotateFile{}
-	err := f.Open("./target/test.log")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	w := writer.NewAsyncBufferWriter(f, writer.Config{
+	w := writer.NewRotateFileWriter(&writer.RotateFile{
+		Path: "./target/test.log",
+	}, writer.Config{
 		FlushSize:     100,
 		BufferSize:    10,
 		FlushInterval: 1 * time.Millisecond,
@@ -111,16 +107,10 @@ func TestRotateFile(t *testing.T) {
 }
 
 func TestRotateFilePart(t *testing.T) {
-	f := &writer.RotateFile{
+	w := writer.NewRotateFileWriter(&writer.RotateFile{
+		Path: "./target/test.log",
 		MaxFileSize: 10,
-	}
-	err := f.Open("./target/test.log")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	w := writer.NewAsyncBufferWriter(f, writer.Config{
+	}, writer.Config{
 		FlushSize:     100,
 		BufferSize:    10,
 		FlushInterval: 1 * time.Millisecond,
@@ -150,22 +140,17 @@ func TestRotateFilePart(t *testing.T) {
 }
 
 func TestRotateFilePartAndTime(t *testing.T) {
-	f := &writer.RotateFile{
-		MaxFileSize:     10,
-		RotateFrequency: 2 * writer.RotateEverySecond,
-	}
-	err := f.Open("./target/test.log")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	w := writer.NewAsyncBufferWriter(f, writer.Config{
-		FlushSize:     100,
+	w := writer.NewRotateFileWriter(&writer.RotateFile{
+		Path: "./target/test.log",
+		MaxFileSize:     60,
+		RotateFrequency: 1 * writer.RotateEverySecond,
+	}, writer.Config{
+		FlushSize:     10,
 		BufferSize:    10,
 		FlushInterval: 1 * time.Millisecond,
 		Block:         true,
 	})
+
 	var count int32 = 0
 	wait := sync.WaitGroup{}
 	wait.Add(10)
@@ -191,23 +176,18 @@ func TestRotateFilePartAndTime(t *testing.T) {
 }
 
 func TestRotateFilePartAndTimeWithZip(t *testing.T) {
-	f := &writer.RotateFile{
+	w := writer.NewRotateFileWriter(&writer.RotateFile{
+		Path: "./target/test.log",
 		MaxFileSize:     10,
 		RotateFrequency: writer.RotateEverySecond,
 		RotateFunc:      writer.ZipLogsAsync,
-	}
-	err := f.Open("./target/test.log")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	w := writer.NewAsyncBufferWriter(f, writer.Config{
+	}, writer.Config{
 		FlushSize:     100,
 		BufferSize:    10,
 		FlushInterval: 1 * time.Millisecond,
 		Block:         true,
 	})
+
 	var count int32 = 0
 	wait := sync.WaitGroup{}
 	wait.Add(10)
@@ -233,19 +213,15 @@ func TestRotateFilePartAndTimeWithZip(t *testing.T) {
 }
 
 func TestMultiWriterLog(t *testing.T) {
-	f := &writer.RotateFile{}
-	err := f.Open("./target/test.log")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	w := writer.NewAsyncBufferWriter(f, writer.Config{
+	w := writer.NewRotateFileWriter(&writer.RotateFile{
+		Path: "./target/test.log",
+	}, writer.Config{
 		FlushSize:     100,
 		BufferSize:    10,
 		FlushInterval: 1 * time.Millisecond,
 		Block:         true,
 	})
+
 	logging := xlog.NewLogging(xlog.SetColorFlag(xlog.DisableColor))
 	logging.SetOutput(io.MultiWriter(os.Stdout, w))
 	xlog.Init(logging)
@@ -260,9 +236,6 @@ func TestMultiWriterLog(t *testing.T) {
 				x := atomic.AddInt32(&count, 1)
 				rand.Read(b)
 				xlog.Infoln(strconv.Itoa(int(x)) + "-" + base64.StdEncoding.EncodeToString(b))
-				if err != nil {
-					t.Fatal(err)
-				}
 			}
 		}()
 	}

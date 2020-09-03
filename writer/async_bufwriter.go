@@ -53,7 +53,7 @@ var defaultConfig = Config{
 
 // 带Buffer的Writer，本身Write、Close方法线程安全，参数WriteCloser可以非线程安全
 // Param: w - 实际写入的Writer， c - Writer的配置，如果不传入则使用默认值，否则使用第1个配置。
-func NewAsyncBufferWriter(w io.Writer, c ...Config) *AsyncBufferLogWriter {
+func NewAsyncBufferWriter(w io.Writer, closer Closer, c ...Config) *AsyncBufferLogWriter {
 	conf := defaultConfig
 	if len(c) > 0 {
 		conf = c[0]
@@ -81,12 +81,13 @@ func NewAsyncBufferWriter(w io.Writer, c ...Config) *AsyncBufferLogWriter {
 	go func() {
 		defer l.wait.Done()
 		defer func() {
-			if w != nil {
-				size := len(l.logChan)
-				for i := 0; i < size; i++ {
-					l.writeLog(<-l.logChan)
-				}
-				l.Flush()
+			size := len(l.logChan)
+			for i := 0; i < size; i++ {
+				l.writeLog(<-l.logChan)
+			}
+			l.Flush()
+			if closer != nil {
+				closer()
 			}
 		}()
 		ticker := time.NewTicker(conf.FlushInterval)

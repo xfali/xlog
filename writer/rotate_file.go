@@ -28,7 +28,22 @@ const (
 	RotateEverySecond RotateFrequency = time.Second
 )
 
+func NewRotateFileWriter(f *RotateFile, conf ...Config) io.WriteCloser {
+	if f == nil {
+		return nil
+	}
+
+	err := f.Open()
+	if err != nil {
+		return nil
+	}
+
+	return NewAsyncBufferWriter(f, f.Close, conf...)
+}
+
 type RotateFile struct {
+	//文件路径
+	Path string
 	// 文件的大小阈值
 	MaxFileSize int64
 	// 滚动频率
@@ -50,7 +65,7 @@ type RotateFile struct {
 	curTimeStr string
 }
 
-func (f *RotateFile) Open(filePath string) error {
+func (f *RotateFile) Open() error {
 	if f.MaxFileSize == 0 {
 		// no limit
 		f.MaxFileSize = math.MaxInt64
@@ -58,7 +73,7 @@ func (f *RotateFile) Open(filePath string) error {
 	if f.timeFormat == "" {
 		f.timeFormat = "2006-01-02"
 	}
-	dir := filepath.Dir(filePath)
+	dir := filepath.Dir(f.Path)
 	_, err := os.Stat(dir)
 	if err != nil {
 		err = os.Mkdir(dir, os.ModePerm)
@@ -68,12 +83,17 @@ func (f *RotateFile) Open(filePath string) error {
 	}
 
 	f.dir = dir
-	f.fileName = filepath.Base(filePath)
+	f.fileName = filepath.Base(f.Path)
 
-	f.file, err = os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	f.file, err = os.OpenFile(f.Path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return err
 	}
+	info, err := f.file.Stat()
+	if err != nil {
+		return err
+	}
+	f.curSize = info.Size()
 	if f.RotateFrequency != RotateNone {
 		f.setFrequency(f.RotateFrequency)
 		f.setTimer()
@@ -98,7 +118,7 @@ func (f *RotateFile) Write(data []byte) (int, error) {
 	if f.timer != nil {
 		select {
 		case <-f.timer.C:
-			err := f.rotateDay()
+			err := f.rotateByTime()
 			f.setTimer()
 			if err != nil {
 				return 0, err
@@ -120,8 +140,9 @@ func (f *RotateFile) Write(data []byte) (int, error) {
 	return n, err
 }
 
-func (f *RotateFile) rotateDay() error {
-	err := f.changeFile(fmt.Sprintf("%s-%s", f.curTimeStr, f.fileName))
+func (f *RotateFile) rotateByTime() error {
+	//err := f.changeFile(fmt.Sprintf("%s-%s", f.curTimeStr, f.fileName))
+	err := f.rotatePart()
 	if err != nil {
 		return err
 	}
@@ -147,6 +168,7 @@ func (f *RotateFile) rotateDay() error {
 	}
 
 	f.curTimeStr = time.Now().Format(f.timeFormat)
+	f.part = 0
 	return nil
 }
 
@@ -197,6 +219,7 @@ func (f *RotateFile) changeFile(filename string) error {
 	if err != nil {
 		return err
 	}
+	f.curSize = 0
 	return nil
 }
 
@@ -217,28 +240,28 @@ func (f *RotateFile) Close() error {
 }
 
 func (f *RotateFile) setFrequency(frequency RotateFrequency) {
-	interval :=  frequency / RotateEveryDay
+	interval := frequency / RotateEveryDay
 	if interval > 0 {
 		f.rotateDuration = interval * RotateEveryDay
 		f.timeFormat = "2006-01-02"
 		return
 	}
 
-	interval =  frequency / RotateEveryHour
+	interval = frequency / RotateEveryHour
 	if interval > 0 {
 		f.rotateDuration = interval * RotateEveryHour
 		f.timeFormat = "2006-01-02-15"
 		return
 	}
 
-	interval =  frequency / RotateEveryMinute
+	interval = frequency / RotateEveryMinute
 	if interval > 0 {
 		f.rotateDuration = interval * RotateEveryMinute
 		f.timeFormat = "2006-01-02-15-04"
 		return
 	}
 
-	interval =  frequency / RotateEverySecond
+	interval = frequency / RotateEverySecond
 	if interval > 0 {
 		f.rotateDuration = interval * RotateEverySecond
 		f.timeFormat = "2006-01-02-15-04-05"
