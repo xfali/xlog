@@ -12,10 +12,11 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
-type Level int
+type Level = int32
 
 const (
 	DEBUG Level = 0
@@ -149,14 +150,14 @@ type Logging interface {
 
 type logging struct {
 	timeFormatter func(t time.Time) string
-	formatter     Formatter
+	formatter     atomic.Value
 	colorFlag     int
 	fileFlag      int
 	fatalNoTrace  bool
 
 	level Level
 
-	writers map[Level]io.Writer
+	writers sync.Map
 
 	bufPool sync.Pool
 }
@@ -166,13 +167,13 @@ var DefaultLogging Logging = NewLogging()
 func NewLogging(opts ...LoggingOpt) Logging {
 	ret := &logging{
 		timeFormatter: TimeFormat,
-		formatter:     nil,
+		//formatter:     nil,
 		colorFlag:     DefaultColorFlag,
 		fileFlag:      DefaultPrintFileFlag,
 		fatalNoTrace:  DefaultFatalNoTrace,
 		level:         DefaultLevel,
 
-		writers: map[Level]io.Writer{},
+		//writers: map[Level]io.Writer{},
 
 		bufPool: sync.Pool{New: func() interface{} {
 			return bytes.NewBuffer(nil)
@@ -180,7 +181,7 @@ func NewLogging(opts ...LoggingOpt) Logging {
 	}
 
 	for k, v := range DefaultWriters {
-		ret.writers[k] = v
+		ret.writers.Store(k, v)
 	}
 
 	for _, v := range opts {
@@ -220,7 +221,8 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 	//	log += "\n"
 	//}
 
-	if l.formatter != nil {
+	formatter := l.formatter.Load()
+	if formatter != nil {
 		innerField := NewField()
 		innerField.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, fmt.Sprintf("%s:%d", file, line))
 		MergeFields(innerField, field)
@@ -228,7 +230,7 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 			log = ""
 		}
 		innerField.Add(KeyContent, log)
-		l.formatter.Format(writer, innerField)
+		formatter.(Formatter).Format(writer, innerField)
 	} else {
 		writer.Write([]byte(fmt.Sprintf("%s [%s%s%s] %s:%d %s%s",
 			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, l.formatField(field), log)))
@@ -273,7 +275,7 @@ func selectLevelColor(level Level) string {
 }
 
 func (l *logging) Logf(level Level, depth int, field Field, format string, args ...interface{}) {
-	if l.level > level {
+	if atomic.LoadInt32(&l.level) > level {
 		return
 	}
 
@@ -297,7 +299,7 @@ func (l *logging) Logf(level Level, depth int, field Field, format string, args 
 }
 
 func (l *logging) Log(level Level, depth int, field Field, args ...interface{}) {
-	if l.level > level {
+	if atomic.LoadInt32(&l.level) > level {
 		return
 	}
 
@@ -313,7 +315,7 @@ func (l *logging) Log(level Level, depth int, field Field, args ...interface{}) 
 }
 
 func (l *logging) Logln(level Level, depth int, field Field, args ...interface{}) {
-	if l.level > level {
+	if atomic.LoadInt32(&l.level) > level {
 		return
 	}
 
@@ -356,20 +358,22 @@ func (l *logging) processFatal(writer io.Writer) {
 func (l *logging) Clone() Logging {
 	ret := &logging{
 		timeFormatter: l.timeFormatter,
-		formatter:     l.formatter,
+		//formatter:     l.formatter,
 		colorFlag:     l.colorFlag,
 		fileFlag:      l.fileFlag,
 		fatalNoTrace:  l.fatalNoTrace,
 		level:         l.level,
-		writers:       map[Level]io.Writer{},
+		//writers:       map[Level]io.Writer{},
 
 		bufPool: sync.Pool{New: func() interface{} {
 			return bytes.NewBuffer(nil)
 		}},
 	}
-	for k, v := range l.writers {
-		ret.writers[k] = v
-	}
+	ret.formatter.Store(l.formatter.Load())
+	l.writers.Range(func(key, value interface{}) bool {
+		ret.writers.Store(key, value)
+		return true
+	})
 	return ret
 }
 
@@ -389,44 +393,47 @@ func (l *logging) Clone() Logging {
 //}
 
 func (l *logging) selectWriter(level Level) io.Writer {
-	var w io.Writer
 	for i := level; i >= DEBUG; i-- {
-		w = l.writers[i]
-		if w != nil {
-			return w
+		v, ok := l.writers.Load(i)
+		if ok {
+			return v.(io.Writer)
 		}
 	}
 	return os.Stdout
 }
 
 func (l *logging) SetFormatter(f Formatter) {
-	l.formatter = f
+	l.formatter.Store(f)
 }
 
 func (l *logging) GetFormatter() Formatter {
-	return l.formatter
+	v := l.formatter.Load()
+	if v == nil {
+		return nil
+	}
+	return v.(Formatter)
 }
 
 func (l *logging) SetSeverityLevel(severity Level) {
-	l.level = severity
+	atomic.StoreInt32(&l.level, severity)
 }
 
 func (l *logging) IsEnable(severityLevel Level) bool {
-	return l.level <= severityLevel
+	return l.level <= atomic.LoadInt32(&l.level)
 }
 
 // Logging不会自动为输出的Writer加锁，如果需要加锁请使用LockedWriter：
 // logging.SetOutPut(&writer.LockedWriter{w})
 func (l *logging) SetOutput(w io.Writer) {
 	for i := DEBUG; i <= FATAL; i++ {
-		l.writers[i] = w
+		l.writers.Store(i, w)
 	}
 }
 
 // Logging不会自动为输出的Writer加锁，如果需要加锁请使用LockedWriter：
 // logging.SetOutputBySeverity(level, &writer.LockedWriter{w})
 func (l *logging) SetOutputBySeverity(severityLevel Level, w io.Writer) {
-	l.writers[severityLevel] = w
+	l.writers.Store(severityLevel, w)
 }
 
 func shortFile(file string) string {

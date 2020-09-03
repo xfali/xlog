@@ -152,7 +152,7 @@ func TestRotateFilePart(t *testing.T) {
 func TestRotateFilePartAndTime(t *testing.T) {
 	f := &writer.RotateFile{
 		MaxFileSize:     10,
-		RotateFrequency: writer.RotateEverySecond,
+		RotateFrequency: 2 * writer.RotateEverySecond,
 	}
 	err := f.Open("./target/test.log")
 	if err != nil {

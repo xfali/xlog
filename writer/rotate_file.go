@@ -17,15 +17,15 @@ import (
 	"time"
 )
 
-type RotateFrequency int
+type RotateFrequency = time.Duration
 
 const (
 	RotateNone      RotateFrequency = 0
-	RotateEveryDay  RotateFrequency = 1
-	RotateEveryHour RotateFrequency = 2
+	RotateEveryDay  RotateFrequency = time.Hour * 24
+	RotateEveryHour RotateFrequency = time.Hour
 	// WARNING: for test only!
-	RotateEveryMinute RotateFrequency = 3
-	RotateEverySecond RotateFrequency = 4
+	RotateEveryMinute RotateFrequency = time.Minute
+	RotateEverySecond RotateFrequency = time.Second
 )
 
 type RotateFile struct {
@@ -217,25 +217,32 @@ func (f *RotateFile) Close() error {
 }
 
 func (f *RotateFile) setFrequency(frequency RotateFrequency) {
-	switch frequency {
-	case RotateEveryDay:
-		f.rotateDuration = time.Hour * 24
+	interval :=  frequency / RotateEveryDay
+	if interval > 0 {
+		f.rotateDuration = interval * RotateEveryDay
 		f.timeFormat = "2006-01-02"
-		break
-	case RotateEveryHour:
-		f.rotateDuration = time.Hour
+		return
+	}
+
+	interval =  frequency / RotateEveryHour
+	if interval > 0 {
+		f.rotateDuration = interval * RotateEveryHour
 		f.timeFormat = "2006-01-02-15"
-		break
-	case RotateEveryMinute:
-		f.rotateDuration = time.Minute
+		return
+	}
+
+	interval =  frequency / RotateEveryMinute
+	if interval > 0 {
+		f.rotateDuration = interval * RotateEveryMinute
 		f.timeFormat = "2006-01-02-15-04"
-		break
-	case RotateEverySecond:
-		f.rotateDuration = time.Second
+		return
+	}
+
+	interval =  frequency / RotateEverySecond
+	if interval > 0 {
+		f.rotateDuration = interval * RotateEverySecond
 		f.timeFormat = "2006-01-02-15-04-05"
-		break
-	default:
-		break
+		return
 	}
 }
 

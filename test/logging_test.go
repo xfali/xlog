@@ -50,6 +50,17 @@ func TestLoggingWithFormat(t *testing.T) {
 	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "ERROR", " test")
 }
 
+func TestLoggingWithCloneAndFormat(t *testing.T) {
+	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	l := xlog.NewLogging()
+	l.SetFormatter(&xlog.TextFormatter{
+		TimeFormat: xlog.TimeFormat,
+	})
+	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "ERROR", " test")
+	l = l.Clone()
+	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "Clone ERROR", " test")
+}
+
 func TestLoggingHook(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
 	l := xlog.NewLogging()

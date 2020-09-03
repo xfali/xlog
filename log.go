@@ -101,3 +101,13 @@ func Fatalln(args ...interface{}) {
 func Fatalf(fmt string, args ...interface{}) {
 	DefaultLogging.Logf(FATAL, DebugDepth, DebugTag, fmt, args...)
 }
+
+// 配置默认的调用深度
+func WithDepth(depth int) {
+	DebugDepth = depth
+}
+
+// 配置默认附件信息
+func WithFields(keyAndValues ...interface{}) {
+	DebugTag = NewField(keyAndValues...)
+}
