@@ -91,5 +91,3 @@ func (w *AsyncLogWriter) Write(data []byte) (n int, err error) {
 		}
 	}
 }
-
-

@@ -137,10 +137,7 @@ type defaultIterator struct {
 }
 
 func (c *defaultIterator) HasNext() bool {
-	if c.cur < len(c.field[0].([]string)) {
-		return true
-	}
-	return false
+	return c.cur < len(c.field[0].([]string))
 }
 
 func (c *defaultIterator) Next() (string, interface{}) {

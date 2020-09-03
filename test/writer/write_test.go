@@ -108,7 +108,7 @@ func TestRotateFile(t *testing.T) {
 
 func TestRotateFilePart(t *testing.T) {
 	w := writer.NewRotateFileWriter(&writer.RotateFile{
-		Path: "./target/test.log",
+		Path:        "./target/test.log",
 		MaxFileSize: 10,
 	}, writer.Config{
 		FlushSize:     100,
@@ -141,7 +141,7 @@ func TestRotateFilePart(t *testing.T) {
 
 func TestRotateFilePartAndTime(t *testing.T) {
 	w := writer.NewRotateFileWriter(&writer.RotateFile{
-		Path: "./target/test.log",
+		Path:            "./target/test.log",
 		MaxFileSize:     60,
 		RotateFrequency: 1 * writer.RotateEverySecond,
 	}, writer.Config{
@@ -177,7 +177,7 @@ func TestRotateFilePartAndTime(t *testing.T) {
 
 func TestRotateFilePartAndTimeWithZip(t *testing.T) {
 	w := writer.NewRotateFileWriter(&writer.RotateFile{
-		Path: "./target/test.log",
+		Path:            "./target/test.log",
 		MaxFileSize:     10,
 		RotateFrequency: writer.RotateEverySecond,
 		RotateFunc:      writer.ZipLogsAsync,

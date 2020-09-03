@@ -16,7 +16,7 @@ import (
 
 const (
 	FlushSize = 10240
-	FlushTime = 5 * time.Millisecond
+	FlushTime = 500 * time.Millisecond
 )
 
 type AsyncBufferLogWriter struct {
