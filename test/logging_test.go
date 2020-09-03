@@ -17,7 +17,7 @@ func TestLoggingf(t *testing.T) {
 	}))
 	l.Logf(xlog.DEBUG, 0, nil, "DEBUG test\n")
 	l.Logf(xlog.INFO, 0, nil, "INFO test\n")
-	l.Logf(xlog.WARN, 0, xlog.NewField("mytest", "mytest"), "WARN test\n")
+	l.Logf(xlog.WARN, 0, xlog.NewKeyValues("mytest", "mytest"), "WARN test\n")
 	l.Logf(xlog.ERROR, 0, nil, "ERROR test")
 	l.Logf(xlog.PANIC, 0, nil, "PANIC test")
 	l.Logf(xlog.FATAL, 0, nil, "FATAL test\n")
@@ -28,6 +28,7 @@ func TestLogging(t *testing.T) {
 	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile|xlog.CallerShortFunc), xlog.SetExitFunc(func(i int) {
 		t.Log("exit: ", i)
 	}))
+	b(l)
 	l.Log(xlog.DEBUG, 0, nil, "DEBUG", " test")
 	l.Log(xlog.INFO, 0, nil, "INFO", " test")
 	l.Log(xlog.WARN, 0, nil, "WARN", " test")
@@ -53,7 +54,7 @@ func TestLoggingWithFormat(t *testing.T) {
 	l.SetFormatter(&xlog.TextFormatter{
 		TimeFormat: xlog.TimeFormat,
 	})
-	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "ERROR", " test")
+	l.Logln(xlog.ERROR, 0, xlog.NewKeyValues("int", 1, "string", "2"), "ERROR", " test")
 }
 
 func TestLoggingWithCloneAndFormat(t *testing.T) {
@@ -62,9 +63,9 @@ func TestLoggingWithCloneAndFormat(t *testing.T) {
 	l.SetFormatter(&xlog.TextFormatter{
 		TimeFormat: xlog.TimeFormat,
 	})
-	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "ERROR", " test")
+	l.Logln(xlog.ERROR, 0, xlog.NewKeyValues("int", 1, "string", "2"), "ERROR", " test")
 	l = l.Clone()
-	l.Logln(xlog.ERROR, 0, xlog.NewField("int", 1, "string", "2"), "Clone ERROR", " test")
+	l.Logln(xlog.ERROR, 0, xlog.NewKeyValues("int", 1, "string", "2"), "Clone ERROR", " test")
 }
 
 func TestLoggingHook(t *testing.T) {
@@ -85,4 +86,8 @@ func TestLoggingHook(t *testing.T) {
 	l.Logln(xlog.PANIC, 0, nil, "PANIC", " test")
 	// lv hook -> PANIC
 	l.Logln(xlog.FATAL, 0, nil, "FATAL", " test")
+}
+
+func b(logging xlog.Logging) {
+	logging.Logln(xlog.INFO, 0, nil, "test")
 }

@@ -18,7 +18,7 @@ var (
 type xlogr struct {
 	logging xlog.Logging
 	level   xlog.Level
-	field   xlog.Field
+	fields  xlog.KeyValues
 	name    string
 }
 
@@ -32,7 +32,7 @@ func NewLogrWithLogging(logging xlog.Logging) logr.Logger {
 	}
 	ret := &xlogr{
 		logging: logging,
-		field:   xlog.NewField(),
+		fields:  xlog.NewKeyValues(),
 		level:   xlog.DefaultLevel,
 	}
 	//if formatter != nil {
@@ -55,10 +55,10 @@ func (l *xlogr) Enabled() bool {
 // variable information.  The key/value pairs should alternate string
 // keys and arbitrary values.
 func (l *xlogr) Info(msg string, keysAndValues ...interface{}) {
-	field := l.field.Clone()
-	field.Add(KeyLogrMessage, msg)
-	field.Add(keysAndValues...)
-	l.logging.Logln(l.level, 1, field)
+	fields := l.fields.Clone()
+	fields.Add(KeyLogrMessage, msg)
+	fields.Add(keysAndValues...)
+	l.logging.Logln(l.level, 1, fields)
 }
 
 // Error logs an error, with the given message and key/value pairs as context.
@@ -70,10 +70,10 @@ func (l *xlogr) Info(msg string, keysAndValues ...interface{}) {
 // while the err field should be used to attach the actual error that
 // triggered this log line, if present.
 func (l *xlogr) Error(err error, msg string, keysAndValues ...interface{}) {
-	field := l.field.Clone()
-	field.Add(KeyLogrMessage, msg, KeyLogrError, err)
-	field.Add(keysAndValues...)
-	l.logging.Logln(l.level, 1, field)
+	fields := l.fields.Clone()
+	fields.Add(KeyLogrError, err, KeyLogrMessage, msg)
+	fields.Add(keysAndValues...)
+	l.logging.Logln(l.level, 1, fields)
 }
 
 // V returns an Logger value for a specific verbosity level, relative to
@@ -83,7 +83,7 @@ func (l *xlogr) Error(err error, msg string, keysAndValues ...interface{}) {
 func (l *xlogr) V(level int) logr.Logger {
 	return &xlogr{
 		level:   Int2Level(level),
-		field:   l.field.Clone(),
+		fields:  l.fields.Clone(),
 		logging: l.logging,
 		name:    l.name,
 	}
@@ -100,11 +100,11 @@ func Level2Int(level xlog.Level) int {
 // WithValues adds some key-value pairs of context to a logger.
 // See Info for documentation on how key/value pairs work.
 func (l *xlogr) WithValues(keysAndValues ...interface{}) logr.Logger {
-	field := l.field.Clone()
-	field.Add(keysAndValues...)
+	fields := l.fields.Clone()
+	fields.Add(keysAndValues...)
 	return &xlogr{
 		level:   l.level,
-		field:   field,
+		fields:  fields,
 		logging: l.logging,
 		name:    l.name,
 	}
@@ -116,13 +116,13 @@ func (l *xlogr) WithValues(keysAndValues ...interface{}) logr.Logger {
 // that name segments contain only letters, digits, and hyphens
 // (see the package documentation for more information).
 func (l *xlogr) WithName(name string) logr.Logger {
-	field := l.field.Clone()
-	field.Add(xlog.KeyName, name)
+	fields := l.fields.Clone()
+	fields.Add(xlog.KeyName, name)
 	ret := &xlogr{
 		level:   l.level,
 		logging: l.logging,
 		name:    l.name + "." + name,
-		field:   field,
+		fields:  fields,
 	}
 
 	return ret

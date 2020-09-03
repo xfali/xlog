@@ -19,7 +19,7 @@ type Iterator interface {
 	Next() (string, interface{})
 }
 
-type Field interface {
+type KeyValues interface {
 	Add(keyAndValues ...interface{}) error
 	GetAll() map[string]interface{}
 	Keys() []string
@@ -29,18 +29,18 @@ type Field interface {
 
 	Iterator() Iterator
 
-	Clone() Field
+	Clone() KeyValues
 }
 
 type Formatter interface {
-	//将日志Field格式化
-	Format(writer io.Writer, field Field) error
+	//将日志keyValues格式化
+	Format(writer io.Writer, keyValues KeyValues) error
 }
 
-type defaultField [2]interface{}
+type defaultKeyValues [2]interface{}
 
-func NewField(keyAndValues ...interface{}) Field {
-	ret := &defaultField{}
+func NewKeyValues(keyAndValues ...interface{}) KeyValues {
+	ret := &defaultKeyValues{}
 	ret[0] = []string{}
 	ret[1] = map[string]interface{}{}
 
@@ -48,7 +48,7 @@ func NewField(keyAndValues ...interface{}) Field {
 	return ret
 }
 
-func (f *defaultField) Add(keyAndValues ...interface{}) error {
+func (f *defaultKeyValues) Add(keyAndValues ...interface{}) error {
 	size := len(keyAndValues)
 	if size == 0 {
 		return nil
@@ -76,26 +76,26 @@ func (f *defaultField) Add(keyAndValues ...interface{}) error {
 	return nil
 }
 
-func (f defaultField) GetAll() map[string]interface{} {
+func (f defaultKeyValues) GetAll() map[string]interface{} {
 	return f[1].(map[string]interface{})
 }
 
-func (f defaultField) Iterator() Iterator {
+func (f defaultKeyValues) Iterator() Iterator {
 	return &defaultIterator{
-		field: f,
-		cur:   0,
+		keyValues: f,
+		cur:       0,
 	}
 }
 
-func (f defaultField) Keys() []string {
+func (f defaultKeyValues) Keys() []string {
 	return f[0].([]string)
 }
 
-func (f defaultField) Get(key string) interface{} {
+func (f defaultKeyValues) Get(key string) interface{} {
 	return f[1].(map[string]interface{})[key]
 }
 
-func (f *defaultField) Remove(key string) error {
+func (f *defaultKeyValues) Remove(key string) error {
 	_, ok := f[1].(map[string]interface{})[key]
 	if ok {
 		delete(f[1].(map[string]interface{}), key)
@@ -112,12 +112,12 @@ func (f *defaultField) Remove(key string) error {
 	}
 }
 
-func (f defaultField) Len() int {
+func (f defaultKeyValues) Len() int {
 	return len(f[0].([]string))
 }
 
-func (f defaultField) Clone() Field {
-	ret := &defaultField{}
+func (f defaultKeyValues) Clone() KeyValues {
+	ret := &defaultKeyValues{}
 	keys := make([]string, len(f[0].([]string)))
 	kvs := make(map[string]interface{}, len(f[1].(map[string]interface{})))
 
@@ -132,40 +132,40 @@ func (f defaultField) Clone() Field {
 }
 
 type defaultIterator struct {
-	field defaultField
-	cur   int
+	keyValues defaultKeyValues
+	cur       int
 }
 
 func (c *defaultIterator) HasNext() bool {
-	return c.cur < len(c.field[0].([]string))
+	return c.cur < len(c.keyValues[0].([]string))
 }
 
 func (c *defaultIterator) Next() (string, interface{}) {
-	v := c.field[0].([]string)[c.cur]
+	v := c.keyValues[0].([]string)[c.cur]
 	c.cur++
-	return v, c.field[1].(map[string]interface{})[v]
+	return v, c.keyValues[1].(map[string]interface{})[v]
 }
 
-func MergeFields(fields ...Field) (Field, error) {
-	if len(fields) == 0 {
-		return nil, errors.New("No field to merge ")
+func MergeKeyValues(keyValues ...KeyValues) (KeyValues, error) {
+	if len(keyValues) == 0 {
+		return nil, errors.New("No keyValues to merge ")
 	} else {
-		field := fields[0]
-		var tmp Field
-		for i := 1; i < len(fields); i++ {
-			tmp = fields[i]
+		kvs := keyValues[0]
+		var tmp KeyValues
+		for i := 1; i < len(keyValues); i++ {
+			tmp = keyValues[i]
 			if tmp == nil {
 				continue
 			}
 			keys := tmp.Keys()
 			for _, k := range keys {
-				err := field.Add(k, tmp.Get(k))
+				err := kvs.Add(k, tmp.Get(k))
 				if err != nil {
-					return field, err
+					return kvs, err
 				}
 			}
 		}
-		return field, nil
+		return kvs, nil
 	}
 }
 
@@ -175,8 +175,8 @@ type TextFormatter struct {
 	SortFunc   func([]string)
 }
 
-func (f *TextFormatter) Format(writer io.Writer, field Field) error {
-	keys := field.Keys()
+func (f *TextFormatter) Format(writer io.Writer, keyValues KeyValues) error {
+	keys := keyValues.Keys()
 	if len(keys) == 0 {
 		return nil
 	}
@@ -189,7 +189,7 @@ func (f *TextFormatter) Format(writer io.Writer, field Field) error {
 	for _, k := range keys {
 		buf.WriteString(k)
 		buf.WriteByte('=')
-		buf.WriteString(f.formatValue(field.Get(k)))
+		buf.WriteString(f.formatValue(keyValues.Get(k)))
 		buf.WriteByte(' ')
 	}
 	if buf.Cap() == 0 || buf.Bytes()[buf.Len()-1] != '\n' {
@@ -233,8 +233,8 @@ func formatValue(o interface{}, quote bool) string {
 type JsonFormatter struct {
 }
 
-func (f *JsonFormatter) Format(writer io.Writer, field Field) error {
-	d, err := json.Marshal(field.GetAll())
+func (f *JsonFormatter) Format(writer io.Writer, keyValues KeyValues) error {
+	d, err := json.Marshal(keyValues.GetAll())
 	if err != nil {
 		return err
 	}

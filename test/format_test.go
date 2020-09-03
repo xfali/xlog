@@ -14,36 +14,36 @@ import (
 )
 
 func TestField(t *testing.T) {
-	field := xlog.NewField()
-	err := field.Add("int", 1, "time", time.Now(), "nil")
+	kvs := xlog.NewKeyValues()
+	err := kvs.Add("int", 1, "time", time.Now(), "nil")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("keys", field.Keys())
-	t.Log("all", field.GetAll())
-	it := field.Iterator()
+	t.Log("keys", kvs.Keys())
+	t.Log("all", kvs.GetAll())
+	it := kvs.Iterator()
 	for it.HasNext() {
 		x, v := it.Next()
 		t.Log("iterator", x, v)
 	}
 
-	field.Add("float", 1.1, "string", "test", "int", -1)
+	kvs.Add("float", 1.1, "string", "test", "int", -1)
 	t.Log("after add twice")
-	it = field.Iterator()
+	it = kvs.Iterator()
 	for it.HasNext() {
 		x, v := it.Next()
 		t.Log("iterator", x, v)
 	}
 
-	field.Remove("float")
+	kvs.Remove("float")
 	t.Log("after remove float")
-	it = field.Iterator()
+	it = kvs.Iterator()
 	for it.HasNext() {
 		x, v := it.Next()
 		t.Log("iterator", x, v)
 	}
 
-	clone := field.Clone()
+	clone := kvs.Clone()
 	t.Log("after Clone float")
 	it = clone.Iterator()
 	for it.HasNext() {
@@ -57,15 +57,15 @@ func TestField(t *testing.T) {
 }
 
 func TestTextFormatter(t *testing.T) {
-	field := xlog.NewField()
-	err := field.Add("int", 1, "time", time.Now(), "nil", nil, "float", 1.1, "string", "test")
+	kvs := xlog.NewKeyValues()
+	err := kvs.Add("int", 1, "time", time.Now(), "nil", nil, "float", 1.1, "string", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Run("empty", func(t *testing.T) {
 		formatter := xlog.TextFormatter{}
-		err := formatter.Format(os.Stdout, xlog.NewField())
+		err := formatter.Format(os.Stdout, xlog.NewKeyValues())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -73,7 +73,7 @@ func TestTextFormatter(t *testing.T) {
 
 	t.Run("none", func(t *testing.T) {
 		formatter := xlog.TextFormatter{}
-		err := formatter.Format(os.Stdout, field)
+		err := formatter.Format(os.Stdout, kvs)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -83,7 +83,7 @@ func TestTextFormatter(t *testing.T) {
 		formatter := xlog.TextFormatter{
 			SortFunc: sort.Strings,
 		}
-		err := formatter.Format(os.Stdout, field)
+		err := formatter.Format(os.Stdout, kvs)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -94,7 +94,7 @@ func TestTextFormatter(t *testing.T) {
 			SortFunc:  sort.Strings,
 			WithQuote: true,
 		}
-		err := formatter.Format(os.Stdout, field)
+		err := formatter.Format(os.Stdout, kvs)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -102,15 +102,15 @@ func TestTextFormatter(t *testing.T) {
 }
 
 func TestJsonFormatter(t *testing.T) {
-	field := xlog.NewField()
-	err := field.Add("int", 1, "time", time.Now(), "nil", nil, "float", 1.1, "string", "test")
+	kvs := xlog.NewKeyValues()
+	err := kvs.Add("int", 1, "time", time.Now(), "nil", nil, "float", 1.1, "string", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Run("none", func(t *testing.T) {
 		formatter := xlog.JsonFormatter{}
-		err := formatter.Format(os.Stdout, field)
+		err := formatter.Format(os.Stdout, kvs)
 		if err != nil {
 			t.Fatal(err)
 		}

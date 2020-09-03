@@ -129,16 +129,16 @@ type LoggingOpt func(l *logging)
 // Logging是xlog的日志基础工具，向下对接日志输出Writer，向上提供日志操作接口
 type Logging interface {
 	// 输出format日志（线程安全）
-	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， format格式化的格式， args参数
-	Logf(level Level, depth int, field Field, format string, args ...interface{})
+	// Param： level日志级别， depth调用深度， keyValues附加的日志内容(多用于添加固定的日志信息)， format格式化的格式， args参数
+	Logf(level Level, depth int, keyValues KeyValues, format string, args ...interface{})
 
 	// 解析并输出参数（线程安全）
-	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， args参数
-	Log(level Level, depth int, field Field, args ...interface{})
+	// Param： level日志级别， depth调用深度， keyValues附加的日志内容(多用于添加固定的日志信息)， args参数
+	Log(level Level, depth int, keyValues KeyValues, args ...interface{})
 
 	// 解析并输出参数，末尾增加换行（线程安全）
-	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， args参数
-	Logln(level Level, depth int, field Field, args ...interface{})
+	// Param： level日志级别， depth调用深度， keyValues附加的日志内容(多用于添加固定的日志信息)， args参数
+	Logln(level Level, depth int, keyValues KeyValues, args ...interface{})
 
 	// 设置日志格式化工具（线程安全）
 	SetFormatter(f Formatter)
@@ -238,7 +238,7 @@ func (l *logging) getCaller(depth int) string {
 	return ""
 }
 
-func (l *logging) format(writer io.Writer, level Level, depth int, field Field, log string) {
+func (l *logging) format(writer io.Writer, level Level, depth int, keyValues KeyValues, log string) {
 	caller := l.getCaller(depth)
 
 	var (
@@ -256,28 +256,28 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 
 	formatter := l.formatter.Load()
 	if formatter != nil {
-		innerField := NewField()
-		innerField.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, caller)
-		MergeFields(innerField, field)
+		innerKvs := NewKeyValues()
+		innerKvs.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, caller)
+		MergeKeyValues(innerKvs, keyValues)
 		if log == "\n" {
 			log = ""
 		}
-		innerField.Add(KeyContent, log)
-		formatter.(Formatter).Format(writer, innerField)
+		innerKvs.Add(KeyContent, log)
+		formatter.(Formatter).Format(writer, innerKvs)
 	} else {
 		writer.Write([]byte(fmt.Sprintf("%s [%s%s%s] %s %s%s",
-			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, caller, l.formatField(field), log)))
+			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, caller, l.formatKeyValues(keyValues), log)))
 	}
 }
 
-func (l *logging) formatField(field Field) string {
-	if field == nil || field.Len() == 0 {
+func (l *logging) formatKeyValues(keyValues KeyValues) string {
+	if keyValues == nil || keyValues.Len() == 0 {
 		return ""
 	}
 
 	buf := bytes.Buffer{}
-	for _, k := range field.Keys() {
-		buf.WriteString(l.formatValue(field.Get(k)))
+	for _, k := range keyValues.Keys() {
+		buf.WriteString(l.formatValue(keyValues.Get(k)))
 		buf.WriteByte(' ')
 	}
 	return buf.String()
@@ -307,7 +307,7 @@ func selectLevelColor(level Level) string {
 	return ""
 }
 
-func (l *logging) Logf(level Level, depth int, field Field, format string, args ...interface{}) {
+func (l *logging) Logf(level Level, depth int, keyValues KeyValues, format string, args ...interface{}) {
 	if atomic.LoadInt32(&l.level) > level {
 		return
 	}
@@ -320,7 +320,7 @@ func (l *logging) Logf(level Level, depth int, field Field, format string, args 
 	}
 	logInfo := fmt.Sprintf(format, args...)
 	w := l.selectWriter(level)
-	l.format(w, level, depth, field, logInfo)
+	l.format(w, level, depth, keyValues, logInfo)
 
 	if level == PANIC {
 		panic(logInfo)
@@ -331,14 +331,14 @@ func (l *logging) Logf(level Level, depth int, field Field, format string, args 
 	//l.output(level, buf)
 }
 
-func (l *logging) Log(level Level, depth int, field Field, args ...interface{}) {
+func (l *logging) Log(level Level, depth int, keyValues KeyValues, args ...interface{}) {
 	if atomic.LoadInt32(&l.level) > level {
 		return
 	}
 
 	logInfo := fmt.Sprint(args...)
 	w := l.selectWriter(level)
-	l.format(w, level, depth, field, logInfo)
+	l.format(w, level, depth, keyValues, logInfo)
 
 	if level == PANIC {
 		panic(logInfo)
@@ -347,14 +347,14 @@ func (l *logging) Log(level Level, depth int, field Field, args ...interface{}) 
 	}
 }
 
-func (l *logging) Logln(level Level, depth int, field Field, args ...interface{}) {
+func (l *logging) Logln(level Level, depth int, keyValues KeyValues, args ...interface{}) {
 	if atomic.LoadInt32(&l.level) > level {
 		return
 	}
 
 	logInfo := fmt.Sprintln(args...)
 	w := l.selectWriter(level)
-	l.format(w, level, depth, field, logInfo)
+	l.format(w, level, depth, keyValues, logInfo)
 
 	if level == PANIC {
 		panic(logInfo)

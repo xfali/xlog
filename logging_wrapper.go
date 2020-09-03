@@ -21,16 +21,16 @@ func NewHookLevelLogging(logging Logging, hook LevelHook) *hookLevelLogging {
 	}
 }
 
-func (l *hookLevelLogging) Logf(level Level, depth int, field Field, format string, args ...interface{}) {
-	l.logging.Logf(l.hook(level), depth+1, field, format, args...)
+func (l *hookLevelLogging) Logf(level Level, depth int, keyValues KeyValues, format string, args ...interface{}) {
+	l.logging.Logf(l.hook(level), depth+1, keyValues, format, args...)
 }
 
-func (l *hookLevelLogging) Log(level Level, depth int, field Field, args ...interface{}) {
-	l.logging.Log(l.hook(level), depth+1, field, args...)
+func (l *hookLevelLogging) Log(level Level, depth int, keyValues KeyValues, args ...interface{}) {
+	l.logging.Log(l.hook(level), depth+1, keyValues, args...)
 }
 
-func (l *hookLevelLogging) Logln(level Level, depth int, field Field, args ...interface{}) {
-	l.logging.Logln(l.hook(level), depth+1, field, args...)
+func (l *hookLevelLogging) Logln(level Level, depth int, keyValues KeyValues, args ...interface{}) {
+	l.logging.Logln(l.hook(level), depth+1, keyValues, args...)
 }
 
 func (l *hookLevelLogging) SetFormatter(f Formatter) {
