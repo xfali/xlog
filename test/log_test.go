@@ -10,7 +10,12 @@ import (
 	"testing"
 )
 
+func a() {
+	xlog.Info("test")
+}
+
 func TestLog(t *testing.T) {
+	a()
 	xlog.Infof("%d %d %d %d\n", 1, 2, 3, 4)
 	xlog.Infoln(1, 2, 3, 4)
 	xlog.Info(1, 2, 3, 4)

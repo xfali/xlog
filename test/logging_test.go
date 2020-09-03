@@ -11,8 +11,8 @@ import (
 )
 
 func TestLoggingf(t *testing.T) {
-	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
-	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
+	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile))
 	l.Logf(xlog.DEBUG, 0, nil, "DEBUG test\n")
 	l.Logf(xlog.INFO, 0, nil, "INFO test\n")
 	l.Logf(xlog.WARN, 0, xlog.NewField("mytest", "mytest"), "WARN test\n")
@@ -22,8 +22,8 @@ func TestLoggingf(t *testing.T) {
 }
 
 func TestLogging(t *testing.T) {
-	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
-	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
+	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile | xlog.CallerShortFunc))
 	l.Log(xlog.DEBUG, 0, nil, "DEBUG", " test")
 	l.Log(xlog.INFO, 0, nil, "INFO", " test")
 	l.Log(xlog.WARN, 0, nil, "WARN", " test")
@@ -32,8 +32,8 @@ func TestLogging(t *testing.T) {
 }
 
 func TestLoggingln(t *testing.T) {
-	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
-	l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
+	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile | xlog.CallerLongFunc))
 	l.Logln(xlog.DEBUG, 0, nil, "DEBUG", " test")
 	l.Logln(xlog.INFO, 0, nil, "INFO", " test")
 	l.Logln(xlog.WARN, 0, nil, "WARN", " test")
@@ -42,7 +42,7 @@ func TestLoggingln(t *testing.T) {
 }
 
 func TestLoggingWithFormat(t *testing.T) {
-	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
 	l := xlog.NewLogging()
 	l.SetFormatter(&xlog.TextFormatter{
 		TimeFormat: xlog.TimeFormat,
@@ -51,7 +51,7 @@ func TestLoggingWithFormat(t *testing.T) {
 }
 
 func TestLoggingWithCloneAndFormat(t *testing.T) {
-	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
 	l := xlog.NewLogging()
 	l.SetFormatter(&xlog.TextFormatter{
 		TimeFormat: xlog.TimeFormat,
@@ -62,7 +62,7 @@ func TestLoggingWithCloneAndFormat(t *testing.T) {
 }
 
 func TestLoggingHook(t *testing.T) {
-	//l := xlog.NewLogging(xlog.SetShowFileFlag(xlog.LongFile))
+	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
 	l := xlog.NewLogging()
 	l = xlog.NewHookLevelLogging(l, func(level xlog.Level) xlog.Level {
 		return level - 1

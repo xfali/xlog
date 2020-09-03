@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,10 +29,20 @@ const (
 )
 
 const (
+	//不显示调用信息
+	CallerNone = 0
 	//只显示文件名
-	ShortFile = 1
+	CallerShortFile = 1
 	//显示文件名及路径
-	LongFile = 1 << 1
+	CallerLongFile = 1 << 1
+	//file mask
+	CallerFileMask = 3
+	//只显示函数名
+	CallerShortFunc = 1 << 2
+	//显示完整函数名
+	CallerLongFunc = 1 << 3
+	//func mask
+	CallerFuncMask = 3 << 2
 )
 
 const (
@@ -99,8 +110,8 @@ var gLogTag = map[Level]string{
 
 // 默认值
 var (
-	DefaultColorFlag     = AutoColor
-	DefaultPrintFileFlag = ShortFile
+	DefaultColorFlag     = DisableColor
+	DefaultPrintFileFlag = CallerShortFile
 	DefaultFatalNoTrace  = false
 	DefaultLevel         = INFO
 	DefaultWriters       = map[Level]io.Writer{
@@ -149,11 +160,12 @@ type Logging interface {
 }
 
 type logging struct {
-	timeFormatter func(t time.Time) string
-	formatter     atomic.Value
-	colorFlag     int
-	fileFlag      int
-	fatalNoTrace  bool
+	timeFormatter   func(t time.Time) string
+	callerFormatter func(file string, line int, funcName string) string
+	formatter       atomic.Value
+	colorFlag       int
+	fileFlag        int
+	fatalNoTrace    bool
 
 	level Level
 
@@ -166,12 +178,13 @@ var DefaultLogging Logging = NewLogging()
 
 func NewLogging(opts ...LoggingOpt) Logging {
 	ret := &logging{
-		timeFormatter: TimeFormat,
+		timeFormatter:   TimeFormat,
+		callerFormatter: CallerFormat,
 		//formatter:     nil,
-		colorFlag:     DefaultColorFlag,
-		fileFlag:      DefaultPrintFileFlag,
-		fatalNoTrace:  DefaultFatalNoTrace,
-		level:         DefaultLevel,
+		colorFlag:    DefaultColorFlag,
+		fileFlag:     DefaultPrintFileFlag,
+		fatalNoTrace: DefaultFatalNoTrace,
+		level:        DefaultLevel,
 
 		//writers: map[Level]io.Writer{},
 
@@ -190,17 +203,38 @@ func NewLogging(opts ...LoggingOpt) Logging {
 	return ret
 }
 
-func (l *logging) format(writer io.Writer, level Level, depth int, field Field, log string) {
-	var (
-		file string
-		line int
-		ok   bool
-	)
-	_, file, line, ok = runtime.Caller(2 + depth)
-	if !ok {
-		file = "???"
-		line = 0
+func (l *logging) getCaller(depth int) string {
+	if l.fileFlag != CallerNone {
+		pc, file, line, ok := runtime.Caller(3 + depth)
+		if !ok {
+			return "???"
+		}
+
+		if (l.fileFlag & CallerShortFile) != 0 {
+			file = shortFile(file)
+		}
+
+		if (l.fileFlag & CallerFileMask) == 0 {
+			file = ""
+			line = -1
+		}
+		var funcName string
+		if (l.fileFlag & CallerFuncMask) != 0 {
+			funcName = runtime.FuncForPC(pc).Name()
+			if (l.fileFlag & CallerShortFunc) != 0 {
+				idx := strings.LastIndex(funcName, ".")
+				if idx != -1 && idx < (len(funcName)-1) {
+					funcName = funcName[idx+1:]
+				}
+			}
+		}
+		return l.callerFormatter(file, line, funcName)
 	}
+	return ""
+}
+
+func (l *logging) format(writer io.Writer, level Level, depth int, field Field, log string) {
+	caller := l.getCaller(depth)
 
 	var (
 		lvColor    string
@@ -211,12 +245,6 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 		resetColor = ResetColor
 	}
 
-	if l.fileFlag == 0 {
-		file = ""
-	} else if (l.fileFlag & ShortFile) != 0 {
-		file = shortFile(file)
-	}
-
 	//if log == "" || log[len(log)-1] != '\n' {
 	//	log += "\n"
 	//}
@@ -224,7 +252,7 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 	formatter := l.formatter.Load()
 	if formatter != nil {
 		innerField := NewField()
-		innerField.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, fmt.Sprintf("%s:%d", file, line))
+		innerField.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, caller)
 		MergeFields(innerField, field)
 		if log == "\n" {
 			log = ""
@@ -232,8 +260,8 @@ func (l *logging) format(writer io.Writer, level Level, depth int, field Field, 
 		innerField.Add(KeyContent, log)
 		formatter.(Formatter).Format(writer, innerField)
 	} else {
-		writer.Write([]byte(fmt.Sprintf("%s [%s%s%s] %s:%d %s%s",
-			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, file, line, l.formatField(field), log)))
+		writer.Write([]byte(fmt.Sprintf("%s [%s%s%s] %s %s%s",
+			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, caller, l.formatField(field), log)))
 	}
 }
 
@@ -357,12 +385,13 @@ func (l *logging) processFatal(writer io.Writer) {
 
 func (l *logging) Clone() Logging {
 	ret := &logging{
-		timeFormatter: l.timeFormatter,
+		timeFormatter:   l.timeFormatter,
+		callerFormatter: l.callerFormatter,
 		//formatter:     l.formatter,
-		colorFlag:     l.colorFlag,
-		fileFlag:      l.fileFlag,
-		fatalNoTrace:  l.fatalNoTrace,
-		level:         l.level,
+		colorFlag:    l.colorFlag,
+		fileFlag:     l.fileFlag,
+		fatalNoTrace: l.fatalNoTrace,
+		level:        l.level,
 		//writers:       map[Level]io.Writer{},
 
 		bufPool: sync.Pool{New: func() interface{} {
@@ -468,10 +497,34 @@ func TimeFormat(t time.Time) string {
 	return timeString
 }
 
+func CallerFormat(file string, line int, funcName string) string {
+	//no file
+	if file != "" {
+		if funcName == "" {
+			return fmt.Sprintf("%s:%d", file, line)
+		} else {
+			return fmt.Sprintf("%s:%d (%s)", file, line, funcName)
+		}
+	} else {
+		if funcName == "" {
+			return ""
+		} else {
+			return "(" + funcName + ")"
+		}
+	}
+}
+
 // 配置内置Logging实现的时间格式化函数
 func SetTimeFormatter(f func(t time.Time) string) func(*logging) {
 	return func(logging *logging) {
 		logging.timeFormatter = f
+	}
+}
+
+// 配置内置Logging实现的时间格式化函数
+func SetCallerFormatter(f func(file string, line int, funcName string) string) func(*logging) {
+	return func(logging *logging) {
+		logging.callerFormatter = f
 	}
 }
 
@@ -483,7 +536,7 @@ func SetColorFlag(flag int) func(*logging) {
 }
 
 // 配置内置Logging实现的文件输出标志，有ShortFile、LongFile
-func SetShowFileFlag(flag int) func(*logging) {
+func SetCallerFlag(flag int) func(*logging) {
 	return func(logging *logging) {
 		logging.fileFlag = flag
 	}
