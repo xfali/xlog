@@ -32,7 +32,7 @@ type loggerFactory struct {
 	SimplifyNameFunc func(string) string
 }
 
-var defaultFactory LoggerFactory = NewFactory(DefaultLogging)
+var defaultFactory LoggerFactory = NewFactory(defaultLogging)
 
 func NewDefaultFactory(opts ...LoggingOpt) *loggerFactory {
 	ret := &loggerFactory{}
@@ -70,6 +70,9 @@ func (fac *loggerFactory) GetLogger(o ...interface{}) Logger {
 	if len(o) == 0 {
 		return NewLogger(fac.value.Load().(Logging))
 	} else {
+		if o[0] == nil {
+			return NewLogger(fac.value.Load().(Logging))
+		}
 		t := reflect.TypeOf(o[0])
 		if t.Kind() == reflect.String {
 			return NewLogger(fac.value.Load().(Logging), o[0].(string))

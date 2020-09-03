@@ -23,7 +23,7 @@ type xlogr struct {
 }
 
 func NewLogr() logr.Logger {
-	return NewLogrWithLogging(xlog.DefaultLogging)
+	return NewLogrWithLogging(xlog.DefaultLogging())
 }
 
 func NewLogrWithLogging(logging xlog.Logging) logr.Logger {

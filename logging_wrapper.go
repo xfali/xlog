@@ -53,6 +53,10 @@ func (l *hookLevelLogging) SetOutputBySeverity(severityLevel Level, w io.Writer)
 	l.logging.SetOutputBySeverity(severityLevel, w)
 }
 
+func (l *hookLevelLogging) GetOutputBySeverity(severity Level) io.Writer {
+	return l.logging.GetOutputBySeverity(severity)
+}
+
 func (l *hookLevelLogging) Clone() Logging {
 	return &hookLevelLogging{
 		logging: l.logging.Clone(),

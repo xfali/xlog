@@ -128,34 +128,37 @@ type LoggingOpt func(l *logging)
 
 // Logging是xlog的日志基础工具，向下对接日志输出Writer，向上提供日志操作接口
 type Logging interface {
-	// 输出format日志（保证线程安全）
+	// 输出format日志（线程安全）
 	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， format格式化的格式， args参数
 	Logf(level Level, depth int, field Field, format string, args ...interface{})
 
-	// 解析并输出参数（保证线程安全）
+	// 解析并输出参数（线程安全）
 	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， args参数
 	Log(level Level, depth int, field Field, args ...interface{})
 
-	// 解析并输出参数，末尾增加换行（保证线程安全）
+	// 解析并输出参数，末尾增加换行（线程安全）
 	// Param： level日志级别， depth调用深度， field附加的日志内容(多用于添加固定的日志信息)， args参数
 	Logln(level Level, depth int, field Field, args ...interface{})
 
-	// 设置日志格式化工具
+	// 设置日志格式化工具（线程安全）
 	SetFormatter(f Formatter)
 
-	// 设置日志严重级别，低于该级别的将不被输出
+	// 设置日志严重级别，低于该级别的将不被输出（线程安全）
 	SetSeverityLevel(severityLevel Level)
 
-	// 判断参数级别是否会输出
+	// 判断参数级别是否会输出（线程安全）
 	IsEnable(severityLevel Level) bool
 
-	// 设置输出的Writer，注意该方法会将所有级别都配置为参数writer
+	// 设置输出的Writer，注意该方法会将所有级别都配置为参数writer（线程安全）
 	SetOutput(w io.Writer)
 
-	// 设置对应日志级别的Writer
+	// 设置对应日志级别的Writer（线程安全）
 	SetOutputBySeverity(severityLevel Level, w io.Writer)
 
-	// 获得一个clone的对象
+	// 获得对应日志级别的Writer（线程安全）
+	GetOutputBySeverity(severityLevel Level) io.Writer
+
+	// 获得一个clone的对象（线程安全）
 	Clone() Logging
 }
 
@@ -174,7 +177,7 @@ type logging struct {
 	bufPool sync.Pool
 }
 
-var DefaultLogging Logging = NewLogging()
+var defaultLogging Logging = NewLogging()
 
 func NewLogging(opts ...LoggingOpt) Logging {
 	ret := &logging{
@@ -424,7 +427,7 @@ func (l *logging) Clone() Logging {
 func (l *logging) selectWriter(level Level) io.Writer {
 	for i := level; i >= DEBUG; i-- {
 		v, ok := l.writers.Load(i)
-		if ok {
+		if ok && v != nil {
 			return v.(io.Writer)
 		}
 	}
@@ -448,7 +451,7 @@ func (l *logging) SetSeverityLevel(severity Level) {
 }
 
 func (l *logging) IsEnable(severityLevel Level) bool {
-	return l.level <= atomic.LoadInt32(&l.level)
+	return atomic.LoadInt32(&l.level) <= severityLevel
 }
 
 // Logging不会自动为输出的Writer加锁，如果需要加锁请使用LockedWriter：
@@ -463,6 +466,14 @@ func (l *logging) SetOutput(w io.Writer) {
 // logging.SetOutputBySeverity(level, &writer.LockedWriter{w})
 func (l *logging) SetOutputBySeverity(severityLevel Level, w io.Writer) {
 	l.writers.Store(severityLevel, w)
+}
+
+func (l *logging) GetOutputBySeverity(severityLevel Level) io.Writer {
+	v, ok := l.writers.Load(severityLevel)
+	if !ok {
+		return nil
+	}
+	return v.(io.Writer)
 }
 
 func shortFile(file string) string {
@@ -551,27 +562,42 @@ func SetFatalNoTrace(noTrace bool) func(*logging) {
 
 // 设置默认Logging的日志格式化工具
 func SetFormatter(f Formatter) {
-	DefaultLogging.SetFormatter(f)
+	defaultLogging.SetFormatter(f)
 }
 
 // 设置默认Logging的日志严重级别
 func SetSeverityLevel(severity Level) {
-	DefaultLogging.SetSeverityLevel(severity)
+	defaultLogging.SetSeverityLevel(severity)
+}
+
+// 检查是否输出参数级别的日志
+func IsEnable(severityLevel Level) bool {
+	return defaultLogging.IsEnable(severityLevel)
 }
 
 // 设置默认Logging的输出
 func SetOutput(w io.Writer) {
-	DefaultLogging.SetOutput(w)
+	defaultLogging.SetOutput(w)
 }
 
 // 设置默认Logging对应日志级别的输出
 func SetOutputBySeverity(severity Level, w io.Writer) {
-	DefaultLogging.SetOutputBySeverity(severity, w)
+	defaultLogging.SetOutputBySeverity(severity, w)
+}
+
+// 获得默认Logging对应日志级别的输出
+func GetOutputBySeverity(severity Level) io.Writer {
+	return defaultLogging.GetOutputBySeverity(severity)
+}
+
+// 获得默认Logging
+func DefaultLogging() Logging {
+	return defaultLogging
 }
 
 // 使用一个Logging初始化日志系统，包括默认Logging和LoggerFactory
 func Init(logging Logging) {
-	DefaultLogging = logging
+	defaultLogging = logging
 	ResetFactoryLogging(logging)
 }
 

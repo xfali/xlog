@@ -23,7 +23,9 @@ func newLogger(logging Logging, field Field, name ...string) *xlog {
 	var t string
 	if len(name) > 0 {
 		t = name[0]
-		field.Add(KeyName, t)
+		if t != "" {
+			field.Add(KeyName, t)
+		}
 	}
 	return &xlog{
 		logging: logging,
