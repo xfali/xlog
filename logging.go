@@ -162,10 +162,14 @@ type Logging interface {
 	Clone() Logging
 }
 
+type ExitFunc func(code int)
+type PanicFunc func(interface{})
+
 type logging struct {
 	timeFormatter   func(t time.Time) string
 	callerFormatter func(file string, line int, funcName string) string
-	exitFunc        func(code int)
+	exitFunc        ExitFunc
+	panicFunc       PanicFunc
 	formatter       atomic.Value
 	colorFlag       int
 	fileFlag        int
@@ -185,6 +189,7 @@ func NewLogging(opts ...LoggingOpt) Logging {
 		timeFormatter:   TimeFormat,
 		callerFormatter: CallerFormat,
 		exitFunc:        os.Exit,
+		panicFunc:       defaultPanic,
 		//formatter:     nil,
 		colorFlag:    DefaultColorFlag,
 		fileFlag:     DefaultPrintFileFlag,
@@ -323,7 +328,7 @@ func (l *logging) Logf(level Level, depth int, keyValues KeyValues, format strin
 	l.format(w, level, depth, keyValues, logInfo)
 
 	if level == PANIC {
-		panic(logInfo)
+		l.panicFunc(NewKeyValues(KeyContent, logInfo))
 	} else if level <= FATAL {
 		l.processFatal(w)
 	}
@@ -341,7 +346,7 @@ func (l *logging) Log(level Level, depth int, keyValues KeyValues, args ...inter
 	l.format(w, level, depth, keyValues, logInfo)
 
 	if level == PANIC {
-		panic(logInfo)
+		l.panicFunc(NewKeyValues(KeyContent, logInfo))
 	} else if level <= FATAL {
 		l.processFatal(w)
 	}
@@ -357,7 +362,7 @@ func (l *logging) Logln(level Level, depth int, keyValues KeyValues, args ...int
 	l.format(w, level, depth, keyValues, logInfo)
 
 	if level == PANIC {
-		panic(logInfo)
+		l.panicFunc(NewKeyValues(KeyContent, logInfo))
 	} else if level <= FATAL {
 		l.processFatal(w)
 	}
@@ -542,10 +547,21 @@ func SetCallerFormatter(f func(file string, line int, funcName string) string) f
 }
 
 // 配置内置Logging Fatal退出处理函数
-func SetExitFunc(f func(int)) func(*logging) {
+func SetExitFunc(f ExitFunc) func(*logging) {
 	return func(logging *logging) {
 		logging.exitFunc = f
 	}
+}
+
+// 配置内置Logging Panic处理函数
+func SetPanicFunc(f PanicFunc) func(*logging) {
+	return func(logging *logging) {
+		logging.panicFunc = f
+	}
+}
+
+func defaultPanic(v interface{}) {
+	panic(v)
 }
 
 // 配置内置Logging实现的颜色的标志，有AutoColor、DisableColor、ForceColor
