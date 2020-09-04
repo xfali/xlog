@@ -12,6 +12,10 @@ type xlog struct {
 	name    string
 }
 
+func New(name ...string) Logger {
+	return newLogger(defaultLogging, nil, name...)
+}
+
 func NewLogger(logging Logging, name ...string) Logger {
 	return newLogger(logging, nil, name...)
 }
@@ -88,11 +92,11 @@ func (l *xlog) Panic(args ...interface{}) {
 }
 
 func (l *xlog) Panicln(args ...interface{}) {
-	l.logging.Log(PANIC, l.depth, l.fields, args...)
+	l.logging.Logln(PANIC, l.depth, l.fields, args...)
 }
 
 func (l *xlog) Panicf(fmt string, args ...interface{}) {
-	l.logging.Log(PANIC, l.depth, l.fields, args...)
+	l.logging.Logf(PANIC, l.depth, l.fields, fmt, args...)
 }
 
 func (l *xlog) Fatal(args ...interface{}) {
