@@ -20,12 +20,12 @@ import (
 type Level = int32
 
 const (
-	DEBUG Level = 0
-	INFO  Level = 1
-	WARN  Level = 2
-	ERROR Level = 3
-	PANIC Level = 4
-	FATAL Level = 5
+	FATAL Level = 0
+	PANIC Level = 1
+	ERROR Level = 2
+	WARN  Level = 3
+	INFO  Level = 4
+	DEBUG Level = 5
 )
 
 const (
@@ -99,7 +99,7 @@ var (
 )
 
 // 级别及名称映射
-var gLogTag = map[Level]string{
+var LogTag = map[Level]string{
 	DEBUG: "DEBUG",
 	INFO:  "INFO",
 	WARN:  "WARN",
@@ -257,7 +257,7 @@ func (l *logging) format(writer io.Writer, level Level, depth int, keyValues Key
 	formatter := l.formatter.Load()
 	if formatter != nil {
 		innerKvs := NewKeyValues()
-		innerKvs.Add(KeyTimestamp, time.Now(), KeySeverityLevel, gLogTag[level], KeyCaller, caller)
+		innerKvs.Add(KeyTimestamp, time.Now(), KeySeverityLevel, LogTag[level], KeyCaller, caller)
 		MergeKeyValues(innerKvs, keyValues)
 		if log == "\n" {
 			log = ""
@@ -266,7 +266,7 @@ func (l *logging) format(writer io.Writer, level Level, depth int, keyValues Key
 		formatter.(Formatter).Format(writer, innerKvs)
 	} else {
 		writer.Write([]byte(fmt.Sprintf("%s [%s%s%s] %s %s%s",
-			l.timeFormatter(time.Now()), lvColor, gLogTag[level], resetColor, caller, l.formatKeyValues(keyValues), log)))
+			l.timeFormatter(time.Now()), lvColor, LogTag[level], resetColor, caller, l.formatKeyValues(keyValues), log)))
 	}
 }
 
@@ -301,14 +301,14 @@ func selectLevelColor(level Level) string {
 		return ForeCyan
 	} else if level == WARN {
 		return ForeYellow
-	} else if level > WARN {
+	} else if level < WARN {
 		return ForeRed
 	}
 	return ""
 }
 
 func (l *logging) Logf(level Level, depth int, keyValues KeyValues, format string, args ...interface{}) {
-	if atomic.LoadInt32(&l.level) > level {
+	if !l.IsEnable(level) {
 		return
 	}
 
@@ -324,7 +324,7 @@ func (l *logging) Logf(level Level, depth int, keyValues KeyValues, format strin
 
 	if level == PANIC {
 		panic(logInfo)
-	} else if level >= FATAL {
+	} else if level <= FATAL {
 		l.processFatal(w)
 	}
 
@@ -332,7 +332,7 @@ func (l *logging) Logf(level Level, depth int, keyValues KeyValues, format strin
 }
 
 func (l *logging) Log(level Level, depth int, keyValues KeyValues, args ...interface{}) {
-	if atomic.LoadInt32(&l.level) > level {
+	if !l.IsEnable(level) {
 		return
 	}
 
@@ -342,13 +342,13 @@ func (l *logging) Log(level Level, depth int, keyValues KeyValues, args ...inter
 
 	if level == PANIC {
 		panic(logInfo)
-	} else if level >= FATAL {
+	} else if level <= FATAL {
 		l.processFatal(w)
 	}
 }
 
 func (l *logging) Logln(level Level, depth int, keyValues KeyValues, args ...interface{}) {
-	if atomic.LoadInt32(&l.level) > level {
+	if !l.IsEnable(level) {
 		return
 	}
 
@@ -358,7 +358,7 @@ func (l *logging) Logln(level Level, depth int, keyValues KeyValues, args ...int
 
 	if level == PANIC {
 		panic(logInfo)
-	} else if level >= FATAL {
+	} else if level <= FATAL {
 		l.processFatal(w)
 	}
 }
@@ -427,7 +427,7 @@ func (l *logging) Clone() Logging {
 //}
 
 func (l *logging) selectWriter(level Level) io.Writer {
-	for i := level; i >= DEBUG; i-- {
+	for i := level; i <= DEBUG; i++ {
 		v, ok := l.writers.Load(i)
 		if ok && v != nil {
 			return v.(io.Writer)
@@ -453,13 +453,13 @@ func (l *logging) SetSeverityLevel(severity Level) {
 }
 
 func (l *logging) IsEnable(severityLevel Level) bool {
-	return atomic.LoadInt32(&l.level) <= severityLevel
+	return atomic.LoadInt32(&l.level) >= severityLevel
 }
 
 // Logging不会自动为输出的Writer加锁，如果需要加锁请使用LockedWriter：
 // logging.SetOutPut(&writer.LockedWriter{w})
 func (l *logging) SetOutput(w io.Writer) {
-	for i := DEBUG; i <= FATAL; i++ {
+	for i := FATAL; i <= DEBUG; i++ {
 		l.writers.Store(i, w)
 	}
 }
