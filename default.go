@@ -12,13 +12,15 @@ type xlog struct {
 	name    string
 }
 
-func New(name ...string) Logger {
-	return newLogger(defaultLogging, nil, name...)
-}
+// Deprecated: use factory.GetLogger instead
+//func New(name ...string) Logger {
+//	return newLogger(defaultLogging, nil, name...)
+//}
 
-func NewLogger(logging Logging, name ...string) Logger {
-	return newLogger(logging, nil, name...)
-}
+// Deprecated: use factory.GetLogger instead
+//func NewLogger(logging Logging, name ...string) Logger {
+//	return newLogger(logging, nil, name...)
+//}
 
 func newLogger(logging Logging, fields KeyValues, name ...string) *xlog {
 	if fields == nil {

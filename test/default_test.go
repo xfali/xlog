@@ -11,14 +11,14 @@ import (
 )
 
 func TestDefaultInfo(t *testing.T) {
-	l := xlog.NewLogger(xlog.NewLogging())
+	l := xlog.GetLogger()
 	l.Info("1")
 	l.Infoln("2")
 	l.Infof("%d\n", 3)
 }
 
 func TestDefaultDepth(t *testing.T) {
-	l := xlog.NewLogger(xlog.NewLogging())
+	l := xlog.GetLogger()
 	l.Infoln("1")
 	l = l.WithDepth(1)
 	l.Infoln("2")

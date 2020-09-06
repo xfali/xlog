@@ -17,7 +17,7 @@ func TestLoggerln(t *testing.T) {
 		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		})))
-		log := xlog.New()
+		log := xlog.GetLogger()
 		defer func() {
 			v := recover()
 			if kvs, ok := v.(xlog.KeyValues); ok {
@@ -42,7 +42,7 @@ func TestLoggerln(t *testing.T) {
 				t.Log("panic !", kvs.GetAll())
 			}
 		})))
-		log := xlog.New()
+		log := xlog.GetLogger()
 		log.Debugln("this is a Debugln test")
 		log.Infoln("this is a Infoln test")
 		log.Warnln("this ia a Warnln test")
@@ -59,7 +59,7 @@ func TestLoggerf(t *testing.T) {
 		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		})))
-		log := xlog.New()
+		log := xlog.GetLogger()
 		defer func() {
 			v := recover()
 			if kvs, ok := v.(xlog.KeyValues); ok {
@@ -85,7 +85,7 @@ func TestLoggerf(t *testing.T) {
 				t.Log("panic !", kvs.GetAll())
 			}
 		})))
-		log := xlog.New()
+		log := xlog.GetLogger()
 		log.Debugf("this is a Debugf test")
 		log.Infof("this is a Infof test")
 		log.Warnf("this ia a Warnf test")
@@ -102,7 +102,7 @@ func TestLogger(t *testing.T) {
 		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		})))
-		log := xlog.New()
+		log := xlog.GetLogger()
 		defer func() {
 			v := recover()
 			if kvs, ok := v.(xlog.KeyValues); ok {
@@ -127,7 +127,7 @@ func TestLogger(t *testing.T) {
 				t.Log("panic !", kvs.GetAll())
 			}
 		})))
-		log := xlog.New()
+		log := xlog.GetLogger()
 		log.Debug("this is a Debug test")
 		log.Info("this is a Info test")
 		log.Warn("this ia a Warn test")

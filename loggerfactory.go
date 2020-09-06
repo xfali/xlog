@@ -22,7 +22,7 @@ type LoggerFactory interface {
 	// 重置Factory的Logging（线程安全）
 	Reset(logging Logging) LoggerFactory
 
-	// 获得Factory的Logging（线程安全），可用来配置Logging（但是不建议这么做，因为Logging的配置方法不一定线程安全，更好的做法是直接重置Logging）
+	// 获得Factory的Logging（线程安全），可用来配置Logging
 	// 也可以通过wrap Logging达到控制日志级别、日志输出格式的目的
 	GetLogging() Logging
 }
@@ -68,14 +68,14 @@ func (fac *loggerFactory) GetLogging() Logging {
 
 func (fac *loggerFactory) GetLogger(o ...interface{}) Logger {
 	if len(o) == 0 {
-		return NewLogger(fac.value.Load().(Logging))
+		return newLogger(fac.value.Load().(Logging), nil)
 	} else {
 		if o[0] == nil {
-			return NewLogger(fac.value.Load().(Logging))
+			return newLogger(fac.value.Load().(Logging), nil)
 		}
 		t := reflect.TypeOf(o[0])
 		if t.Kind() == reflect.String {
-			return NewLogger(fac.value.Load().(Logging), o[0].(string))
+			return newLogger(fac.value.Load().(Logging), nil, o[0].(string))
 		}
 
 		name := t.PkgPath()
@@ -93,7 +93,7 @@ func (fac *loggerFactory) GetLogger(o ...interface{}) Logger {
 				name = strings.Replace(name, "/", ".", -1) + "." + t.Name()
 			}
 		}
-		return NewLogger(fac.value.Load().(Logging), name)
+		return newLogger(fac.value.Load().(Logging), nil, name)
 	}
 }
 
