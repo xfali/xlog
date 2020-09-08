@@ -11,6 +11,17 @@ import (
 )
 
 func TestLoggerln(t *testing.T) {
+	t.Run("reset logging", func(t *testing.T) {
+		log := xlog.GetLogger()
+
+		log.Infoln("test")
+
+		logging := xlog.NewLogging()
+		logging.SetSeverityLevel(xlog.WARN)
+		xlog.ResetFactoryLogging(logging)
+		log.Infoln("test2")
+	})
+
 	t.Run("default", func(t *testing.T) {
 		// reset default init at first
 		// no fatal trace, do not exit
@@ -134,5 +145,63 @@ func TestLogger(t *testing.T) {
 		log.Error("this ia a Error test")
 		log.Panic("this ia a Panic test")
 		log.Fatal("this ia a Fatal test")
+	})
+}
+
+func TestMutableLoggerln(t *testing.T) {
+	t.Run("reset logging", func(t *testing.T) {
+		xlog.ResetFactory(xlog.NewMutableFactory(
+			xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+				t.Log("exit: ", i)
+			}))))
+		log := xlog.GetLogger()
+
+		log.Infoln("test")
+
+		logging := xlog.NewLogging()
+		logging.SetSeverityLevel(xlog.WARN)
+		xlog.ResetFactoryLogging(logging)
+		log.Infoln("test2")
+	})
+
+	t.Run("default", func(t *testing.T) {
+		// reset default init at first
+		// no fatal trace, do not exit
+		xlog.ResetFactory(xlog.NewMutableFactory(
+			xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+				t.Log("exit: ", i)
+			}))))
+		log := xlog.GetLogger()
+		defer func() {
+			v := recover()
+			if kvs, ok := v.(xlog.KeyValues); ok {
+				t.Log("recover panic !", kvs.GetAll())
+			}
+			log.Fatalln("this ia a Fatalln test")
+		}()
+		log.Debugln("this is a Debugln test")
+		log.Infoln("this is a Infoln test")
+		log.Warnln("this ia a Warnln test")
+		log.Errorln("this ia a Errorln test")
+		log.Panicln("this ia a Panicln test")
+	})
+
+	t.Run("exit and panic", func(t *testing.T) {
+		// reset default init at first
+		// no fatal trace, do not exit
+		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+			t.Log("exit: ", i)
+		}), xlog.SetPanicFunc(func(v interface{}) {
+			if kvs, ok := v.(xlog.KeyValues); ok {
+				t.Log("panic !", kvs.GetAll())
+			}
+		})))
+		log := xlog.GetLogger()
+		log.Debugln("this is a Debugln test")
+		log.Infoln("this is a Infoln test")
+		log.Warnln("this ia a Warnln test")
+		log.Errorln("this ia a Errorln test")
+		log.Panicln("this ia a Panicln test")
+		log.Fatalln("this ia a Fatalln test")
 	})
 }

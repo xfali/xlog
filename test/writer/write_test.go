@@ -244,3 +244,37 @@ func TestMultiWriterLog(t *testing.T) {
 	w.Close()
 	t.Log(count)
 }
+
+func TestMultiWriterMutableLogger(t *testing.T) {
+	w := writer.NewRotateFileWriter(&writer.RotateFile{
+		Path: "./target/test.log",
+	}, writer.Config{
+		FlushSize:     100,
+		BufferSize:    10,
+		FlushInterval: 1 * time.Millisecond,
+		Block:         true,
+	})
+
+	logging := xlog.NewLogging(xlog.SetColorFlag(xlog.DisableColor))
+	logging.SetOutput(io.MultiWriter(os.Stdout, w))
+	xlog.ResetFactory(xlog.NewMutableFactory(logging))
+	logger := xlog.GetLogger()
+	var count int32 = 0
+	wait := sync.WaitGroup{}
+	wait.Add(20)
+	for i := 0; i < 20; i++ {
+		go func() {
+			defer wait.Done()
+			b := make([]byte, 10)
+			for i := 0; i < 10; i++ {
+				x := atomic.AddInt32(&count, 1)
+				rand.Read(b)
+				logger.Infoln(strconv.Itoa(int(x)) + "-" + base64.StdEncoding.EncodeToString(b))
+			}
+		}()
+	}
+
+	wait.Wait()
+	w.Close()
+	t.Log(count)
+}

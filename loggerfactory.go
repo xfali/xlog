@@ -108,3 +108,44 @@ func SimplifyNameFirstLetter(s string) string {
 	}
 	return s[:1]
 }
+
+type mutableLoggerFactory struct {
+	loggerFactory
+}
+
+func NewMutableFactory(logging Logging) *mutableLoggerFactory {
+	ret := &mutableLoggerFactory{}
+	ret.value.Store(logging)
+	return ret
+}
+
+func (fac *mutableLoggerFactory) GetLogger(o ...interface{}) Logger {
+	if len(o) == 0 {
+		return newMutableLogger(&fac.value, nil)
+	} else {
+		if o[0] == nil {
+			return newMutableLogger(&fac.value, nil)
+		}
+		t := reflect.TypeOf(o[0])
+		if t.Kind() == reflect.String {
+			return newMutableLogger(&fac.value, nil, o[0].(string))
+		}
+
+		name := t.PkgPath()
+		if name != "" {
+			if fac.SimplifyNameFunc != nil {
+				names := strings.Split(name, "/")
+				builder := strings.Builder{}
+				for _, v := range names {
+					builder.WriteString(fac.SimplifyNameFunc(v))
+					builder.WriteByte('.')
+				}
+				builder.WriteString(t.Name())
+				name = builder.String()
+			} else {
+				name = strings.Replace(name, "/", ".", -1) + "." + t.Name()
+			}
+		}
+		return newMutableLogger(&fac.value, nil, name)
+	}
+}

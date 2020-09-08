@@ -52,3 +52,26 @@ func TestFactorySimplifyName(t *testing.T) {
 	logger = xlog.GetLogger(1)
 	logger.Warnln("int")
 }
+
+func TestMutableFactoryTag(t *testing.T) {
+	xlog.ResetFactory(xlog.NewMutableFactory(xlog.DefaultLogging()))
+	logger := xlog.GetLogger()
+	logger.Warnln("test")
+	logger = xlog.GetLogger(nil)
+	logger.Warnln("test")
+	logger = logger.WithName("test2")
+	logger.Warnln("test2")
+	logger = logger.WithName("test3")
+	logger.Warnln("test3")
+	logger = logger.WithFields("FieldKey", "FieldValue")
+	logger.Warnln("test4")
+	logger = logger.WithFields("FieldKey", "FieldValue2")
+	logger.Warnln("test5")
+
+	type TestStructInTest struct{}
+	logger = xlog.GetLogger(TestStructInTest{})
+	logger.Warnln("A")
+
+	logger = xlog.GetLogger(1)
+	logger.Warnln("int")
+}

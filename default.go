@@ -5,6 +5,8 @@
 
 package xlog
 
+import "sync/atomic"
+
 type xlog struct {
 	logging Logging
 	depth   int
@@ -144,6 +146,145 @@ func (l *xlog) WithDepth(depth int) Logger {
 		return nil
 	}
 	ret := newLogger(l.logging, l.fields.Clone(), l.name)
+	ret.depth += depth
+
+	return ret
+}
+
+type mutableLog struct {
+	logging *atomic.Value
+	depth   int
+	fields  KeyValues
+	name    string
+}
+
+func newMutableLogger(logging *atomic.Value, fields KeyValues, name ...string) *mutableLog {
+	if fields == nil {
+		fields = NewKeyValues()
+	}
+	var t string
+	if len(name) > 0 {
+		t = name[0]
+		if t != "" {
+			fields.Add(KeyName, t)
+		}
+	}
+	ret := &mutableLog{
+		logging: logging,
+		depth:   1,
+		name:    t,
+		fields:  fields,
+	}
+	return ret
+}
+
+func (l *mutableLog) getLogging() Logging {
+	return l.logging.Load().(Logging)
+}
+
+func (l *mutableLog) Debug(args ...interface{}) {
+	l.getLogging().Log(DEBUG, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Debugln(args ...interface{}) {
+	l.getLogging().Logln(DEBUG, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Debugf(fmt string, args ...interface{}) {
+	l.getLogging().Logf(DEBUG, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) Info(args ...interface{}) {
+	l.getLogging().Log(INFO, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Infoln(args ...interface{}) {
+	l.getLogging().Logln(INFO, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Infof(fmt string, args ...interface{}) {
+	l.getLogging().Logf(INFO, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) Warn(args ...interface{}) {
+	l.getLogging().Log(WARN, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Warnln(args ...interface{}) {
+	l.getLogging().Logln(WARN, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Warnf(fmt string, args ...interface{}) {
+	l.getLogging().Logf(WARN, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) Error(args ...interface{}) {
+	l.getLogging().Log(ERROR, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Errorln(args ...interface{}) {
+	l.getLogging().Logln(ERROR, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Errorf(fmt string, args ...interface{}) {
+	l.getLogging().Logf(ERROR, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) Panic(args ...interface{}) {
+	l.getLogging().Log(PANIC, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Panicln(args ...interface{}) {
+	l.getLogging().Logln(PANIC, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Panicf(fmt string, args ...interface{}) {
+	l.getLogging().Logf(PANIC, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) Fatal(args ...interface{}) {
+	l.getLogging().Log(FATAL, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Fatalln(args ...interface{}) {
+	l.getLogging().Logln(FATAL, l.depth, l.fields, args...)
+}
+
+func (l *mutableLog) Fatalf(fmt string, args ...interface{}) {
+	l.getLogging().Logf(FATAL, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) WithName(name string) Logger {
+	if l == nil {
+		return nil
+	}
+
+	if l.name != "" {
+		name = l.name + "." + name
+	}
+	ret := newMutableLogger(l.logging, l.fields.Clone(), name)
+	ret.fields.Add(KeyName, ret.name)
+	ret.depth = l.depth
+
+	return ret
+}
+
+func (l *mutableLog) WithFields(keyAndValues ...interface{}) Logger {
+	if l == nil {
+		return nil
+	}
+	ret := newMutableLogger(l.logging, l.fields.Clone(), l.name)
+	ret.fields.Add(keyAndValues...)
+	ret.depth = l.depth
+
+	return ret
+}
+
+func (l *mutableLog) WithDepth(depth int) Logger {
+	if l == nil {
+		return nil
+	}
+	ret := newMutableLogger(l.logging, l.fields.Clone(), l.name)
 	ret.depth += depth
 
 	return ret
