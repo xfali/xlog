@@ -67,34 +67,8 @@ func (fac *loggerFactory) GetLogging() Logging {
 }
 
 func (fac *loggerFactory) GetLogger(o ...interface{}) Logger {
-	if len(o) == 0 {
-		return newLogger(fac.value.Load().(Logging), nil)
-	} else {
-		if o[0] == nil {
-			return newLogger(fac.value.Load().(Logging), nil)
-		}
-		t := reflect.TypeOf(o[0])
-		if t.Kind() == reflect.String {
-			return newLogger(fac.value.Load().(Logging), nil, o[0].(string))
-		}
-
-		name := t.PkgPath()
-		if name != "" {
-			if fac.SimplifyNameFunc != nil {
-				names := strings.Split(name, "/")
-				builder := strings.Builder{}
-				for _, v := range names {
-					builder.WriteString(fac.SimplifyNameFunc(v))
-					builder.WriteByte('.')
-				}
-				builder.WriteString(t.Name())
-				name = builder.String()
-			} else {
-				name = strings.Replace(name, "/", ".", -1) + "." + t.Name()
-			}
-		}
-		return newLogger(fac.value.Load().(Logging), nil, name)
-	}
+	name := getObjectName(fac.SimplifyNameFunc, o...)
+	return newLogger(fac.value.Load().(Logging), nil, name)
 }
 
 func (fac *loggerFactory) Reset(logging Logging) LoggerFactory {
@@ -120,24 +94,32 @@ func NewMutableFactory(logging Logging) *mutableLoggerFactory {
 }
 
 func (fac *mutableLoggerFactory) GetLogger(o ...interface{}) Logger {
+	name := getObjectName(fac.SimplifyNameFunc, o...)
+	return newMutableLogger(&fac.value, nil, name)
+}
+
+func getObjectName(simpleFunc func(string) string, o ...interface{}) string {
 	if len(o) == 0 {
-		return newMutableLogger(&fac.value, nil)
+		return ""
 	} else {
 		if o[0] == nil {
-			return newMutableLogger(&fac.value, nil)
+			return ""
 		}
 		t := reflect.TypeOf(o[0])
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
 		if t.Kind() == reflect.String {
-			return newMutableLogger(&fac.value, nil, o[0].(string))
+			return o[0].(string)
 		}
 
 		name := t.PkgPath()
 		if name != "" {
-			if fac.SimplifyNameFunc != nil {
+			if simpleFunc != nil {
 				names := strings.Split(name, "/")
 				builder := strings.Builder{}
 				for _, v := range names {
-					builder.WriteString(fac.SimplifyNameFunc(v))
+					builder.WriteString(simpleFunc(v))
 					builder.WriteByte('.')
 				}
 				builder.WriteString(t.Name())
@@ -146,6 +128,6 @@ func (fac *mutableLoggerFactory) GetLogger(o ...interface{}) Logger {
 				name = strings.Replace(name, "/", ".", -1) + "." + t.Name()
 			}
 		}
-		return newMutableLogger(&fac.value, nil, name)
+		return name
 	}
 }
