@@ -1,12 +1,16 @@
 # xlog
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/xfali/xlog)](https://goreportcard.com/report/github.com/xfali/xlog)
+[![Build status](https://ci.appveyor.com/api/projects/status/ajcpxxgvp10n6dmp?svg=true)](https://ci.appveyor.com/project/xfali/xlog)
+
 xlog是一个go日志框架，提供简单易用的日志[API](logger.go)。
 
-同时各层的实现可以自行实现接口进行替换，根据实际业务进行配置:
+xlog同时实现了[logr API (v0.2.0)](https://github.com/go-logr/logr) (xlogr)
+
+xlog各层可以自行实现接口进行替换，根据实际业务进行配置:
 
 
-![](docs/images/xlog.png)
-
+![alt](docs/images/xlog.png)
 
 ## 安装
 ```
@@ -15,7 +19,7 @@ go get github.com/xfali/xlog
 
 ## 使用
 
-### 1. 快速上手
+### 1. 快速入门
 ```
 logger := xlog.GetLogger()
 logger.Infof("hello %s\n", "world")
@@ -58,6 +62,12 @@ xlog.SetOutputBySeverity(xlog.WARN, w)
 xlog.SetFormatter(f)
 ```
 
+### 5. 使用logr API
+```
+logr := xlogr.NewLogr()
+logr.Info("this is a test", "time", time.Now(), "float", 3.14)
+```
+
 ## 内置Writer
 xlog内置的输出writer有：
 * AsyncBufferLogWriter: 线程安全的异步带缓存的writer
@@ -66,7 +76,7 @@ xlog内置的输出writer有：
 
 (一般RotateFileWriter结合AsyncBufferLogWriter使用)
 
-也可以使用外置输出writer，如：
+也可以使用第三方输出writer，如：
 
 [file-rotatelogs](https://github.com/lestrrat-go/file-rotatelogs)
 ### 
@@ -81,3 +91,4 @@ w := writer.NewRotateFileWriter(&writer.RotateFile{
 	})
 xlog.SetOutput(w)
 ```
+
