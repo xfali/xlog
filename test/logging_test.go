@@ -72,7 +72,7 @@ func TestLoggingHook(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
 	l := xlog.NewLogging()
 	l = xlog.NewHookLevelLogging(l, func(level xlog.Level) xlog.Level {
-		return level - 1
+		return level + 1
 	})
 	// not print
 	l.Logln(xlog.DEBUG, 0, nil, "DEBUG", " test")

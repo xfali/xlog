@@ -10,8 +10,11 @@ import (
 	"sync/atomic"
 )
 
+// 存储值对象工具，interface不做类型检查，需用户自行确认存取类型
 type Value interface {
+	// 存储值
 	Store(interface{})
+	// 取出值
 	Load() interface{}
 }
 

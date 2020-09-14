@@ -9,7 +9,6 @@ import (
 	"github.com/xfali/xlog/value"
 	"reflect"
 	"strings"
-	"sync/atomic"
 )
 
 type LoggerFactory interface {
@@ -29,41 +28,48 @@ type LoggerFactory interface {
 }
 
 type loggerFactory struct {
-	value            atomic.Value
+	value            value.Value
 	SimplifyNameFunc func(string) string
 }
 
-var defaultFactory value.Value = value.NewAtomicValue(innerConvFac(NewMutableFactory(DefaultLogging())))
+var defaultFactory value.Value = value.NewSimpleValue(LoggerFactory(NewMutableFactory(DefaultLogging())))
 
 func NewDefaultFactory(opts ...LoggingOpt) *loggerFactory {
-	ret := &loggerFactory{}
-	ret.value.Store(NewLogging(opts...))
-	return ret
+	return NewFactory(NewLogging(opts...))
 }
 
 func NewFactory(logging Logging) *loggerFactory {
-	ret := &loggerFactory{}
-	ret.value.Store(logging)
+	return NewFactoryWithValue(value.NewAtomicValue(logging))
+}
+
+func NewFactoryWithValue(v value.Value) *loggerFactory {
+	ret := &loggerFactory{
+		value: v,
+	}
 	return ret
 }
 
-func innerConvFac(fac LoggerFactory) LoggerFactory {
-	return fac
-}
-
 // 重新配置全局的默认LoggerFactory，该方法同时会重置全局的默认Logging
+// 由于线程安全性受defaultLogging、defaultFactory初始化（调用InitOnce）的Value决定，
+// 所以需要确定是否确实需要调用该方法重置Logging，并保证Value线程安全
 func ResetFactory(fac LoggerFactory) {
 	defaultFactory.Store(fac)
 	ResetLogging(fac.GetLogging())
 }
 
 // 重新配置全局的默认Logging，该方法同时会重置全局的默认LoggerFactory的Logging
+// 由于线程安全性受defaultLogging、defaultFactory初始化（调用InitOnce）的Value决定，
+// 所以需要确定是否确实需要调用该方法重置Logging，并保证Value线程安全
 func ResetLogging(logging Logging) {
 	defaultLogging.Store(logging)
 	defaultFactory.Load().(LoggerFactory).Reset(defaultLogging.Load().(Logging))
 }
 
 // 通过全局默认LoggerFactory获取Logger
+// Param：根据默认实现，o可不填，直接返回一个没有名称的Logger。
+// 如果o有值，则只取第一个值，且当：
+// 		o为string时，使用string值作为Logger名称
+//		o为其他类型时，取package path + type name作为Logger名称，以"."分隔，如g.x.x.t.TestStructInTest
 func GetLogger(o ...interface{}) Logger {
 	return defaultFactory.Load().(LoggerFactory).GetLogger(o...)
 }
@@ -99,14 +105,18 @@ type mutableLoggerFactory struct {
 }
 
 func NewMutableFactory(logging Logging) *mutableLoggerFactory {
+	return NewMutableFactoryWithValue(value.NewAtomicValue(logging))
+}
+
+func NewMutableFactoryWithValue(v value.Value) *mutableLoggerFactory {
 	ret := &mutableLoggerFactory{}
-	ret.value.Store(logging)
+	ret.value = v
 	return ret
 }
 
 func (fac *mutableLoggerFactory) GetLogger(o ...interface{}) Logger {
 	name := getObjectName(fac.SimplifyNameFunc, o...)
-	return newMutableLogger(&fac.value, nil, name)
+	return newMutableLogger(fac.value, nil, name)
 }
 
 func getObjectName(simpleFunc func(string) string, o ...interface{}) string {

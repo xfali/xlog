@@ -5,7 +5,9 @@
 
 package xlog
 
-import "sync/atomic"
+import (
+	"github.com/xfali/xlog/value"
+)
 
 type xlog struct {
 	logging Logging
@@ -152,13 +154,13 @@ func (l *xlog) WithDepth(depth int) Logger {
 }
 
 type mutableLog struct {
-	logging *atomic.Value
+	logging value.Value
 	depth   int
 	fields  KeyValues
 	name    string
 }
 
-func newMutableLogger(logging *atomic.Value, fields KeyValues, name ...string) *mutableLog {
+func newMutableLogger(logging value.Value, fields KeyValues, name ...string) *mutableLog {
 	if fields == nil {
 		fields = NewKeyValues()
 	}

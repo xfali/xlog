@@ -11,9 +11,9 @@ import (
 
 var (
 	// 默认日志深度
-	LogDepth value.Value = value.NewAtomicValue(int(1))
+	LogDepth value.Value = value.NewSimpleValue(int(1))
 	// 默认日志附加信息（无）
-	LogFields value.Value = value.NewAtomicValue(nil)
+	LogFields value.Value = value.NewSimpleValue(nil)
 )
 
 // 使用默认的Logging，输出Debug级别的日志
