@@ -53,24 +53,24 @@ func innerConvFac(fac LoggerFactory) LoggerFactory {
 
 // 重新配置全局的默认LoggerFactory，该方法同时会重置全局的默认Logging
 func ResetFactory(fac LoggerFactory) {
-	defaultFactory.Set(fac)
+	defaultFactory.Store(fac)
 	ResetLogging(fac.GetLogging())
 }
 
 // 重新配置全局的默认Logging，该方法同时会重置全局的默认LoggerFactory的Logging
 func ResetLogging(logging Logging) {
-	defaultLogging.Set(logging)
-	defaultFactory.Get().(LoggerFactory).Reset(defaultLogging.Get().(Logging))
+	defaultLogging.Store(logging)
+	defaultFactory.Load().(LoggerFactory).Reset(defaultLogging.Load().(Logging))
 }
 
 // 通过全局默认LoggerFactory获取Logger
 func GetLogger(o ...interface{}) Logger {
-	return defaultFactory.Get().(LoggerFactory).GetLogger(o...)
+	return defaultFactory.Load().(LoggerFactory).GetLogger(o...)
 }
 
 // 通过全局默认LoggerFactory的Logging
 func GetLogging() Logging {
-	return defaultFactory.Get().(LoggerFactory).GetLogging()
+	return defaultFactory.Load().(LoggerFactory).GetLogging()
 }
 
 func (fac *loggerFactory) GetLogging() Logging {
@@ -119,7 +119,6 @@ func getObjectName(simpleFunc func(string) string, o ...interface{}) string {
 		t := reflect.TypeOf(o[0])
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem()
-
 		}
 		if t.Kind() == reflect.String {
 			return o[0].(string)

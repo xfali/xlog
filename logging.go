@@ -588,37 +588,37 @@ func SetFatalNoTrace(noTrace bool) func(*logging) {
 
 // 设置默认Logging的日志格式化工具
 func SetFormatter(f Formatter) {
-	defaultLogging.Get().(Logging).SetFormatter(f)
+	defaultLogging.Load().(Logging).SetFormatter(f)
 }
 
 // 设置默认Logging的日志严重级别
 func SetSeverityLevel(severity Level) {
-	defaultLogging.Get().(Logging).SetSeverityLevel(severity)
+	defaultLogging.Load().(Logging).SetSeverityLevel(severity)
 }
 
 // 检查是否输出参数级别的日志
 func IsEnable(severityLevel Level) bool {
-	return defaultLogging.Get().(Logging).IsEnable(severityLevel)
+	return defaultLogging.Load().(Logging).IsEnable(severityLevel)
 }
 
 // 设置默认Logging的输出
 func SetOutput(w io.Writer) {
-	defaultLogging.Get().(Logging).SetOutput(w)
+	defaultLogging.Load().(Logging).SetOutput(w)
 }
 
 // 设置默认Logging对应日志级别的输出
 func SetOutputBySeverity(severity Level, w io.Writer) {
-	defaultLogging.Get().(Logging).SetOutputBySeverity(severity, w)
+	defaultLogging.Load().(Logging).SetOutputBySeverity(severity, w)
 }
 
 // 获得默认Logging对应日志级别的输出
 func GetOutputBySeverity(severity Level) io.Writer {
-	return defaultLogging.Get().(Logging).GetOutputBySeverity(severity)
+	return defaultLogging.Load().(Logging).GetOutputBySeverity(severity)
 }
 
 // 获得默认Logging
 func DefaultLogging() Logging {
-	return defaultLogging.Get().(Logging)
+	return defaultLogging.Load().(Logging)
 }
 
 // 配置默认的Logging、Factory value，可以配置为线程安全(value.AtomicValue)的和非线程安全的(value.SimpleValue)

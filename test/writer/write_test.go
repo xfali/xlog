@@ -8,6 +8,7 @@ package writer
 import (
 	"encoding/base64"
 	"github.com/xfali/xlog"
+	"github.com/xfali/xlog/value"
 	"github.com/xfali/xlog/writer"
 	"io"
 	"math/rand"
@@ -275,4 +276,11 @@ func TestMultiWriterMutableLogger(t *testing.T) {
 	wait.Wait()
 	w.Close()
 	t.Log(count)
+}
+
+func TestValue(t *testing.T) {
+	v := value.NewAtomicValue(os.Stdout)
+	t.Log(v.Load())
+	v.Store(writer.NewAsyncBufferWriter(os.Stdout, nil, writer.Config{}))
+	t.Log(v.Load())
 }

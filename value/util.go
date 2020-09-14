@@ -5,11 +5,14 @@
 
 package value
 
-import "sync/atomic"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 type Value interface {
-	Set(interface{})
-	Get() interface{}
+	Store(interface{})
+	Load() interface{}
 }
 
 type SimpleValue struct {
@@ -20,11 +23,11 @@ func NewSimpleValue(o interface{}) *SimpleValue {
 	return &SimpleValue{o: o}
 }
 
-func (l *SimpleValue) Get() interface{} {
+func (l *SimpleValue) Load() interface{} {
 	return l.o
 }
 
-func (l *SimpleValue) Set(o interface{}) {
+func (l *SimpleValue) Store(o interface{}) {
 	l.o = o
 }
 
@@ -32,15 +35,36 @@ type AtomicValue atomic.Value
 
 func NewAtomicValue(o interface{}) *AtomicValue {
 	ret := &AtomicValue{}
-	if o != nil {
-		ret.Set(o)
-	}
+	ret.Store(o)
 	return ret
 }
-func (l *AtomicValue) Get() interface{} {
-	return (*atomic.Value)(l).Load()
+func (l *AtomicValue) Load() interface{} {
+	return (*atomic.Value)(l).Load().(*SimpleValue).Load()
 }
 
-func (l *AtomicValue) Set(o interface{}) {
-	(*atomic.Value)(l).Store(o)
+func (l *AtomicValue) Store(o interface{}) {
+	(*atomic.Value)(l).Store(&SimpleValue{o: o})
+}
+
+type LockedValue struct {
+	o    interface{}
+	lock sync.RWMutex
+}
+
+func NewLockedValue(o interface{}) *LockedValue {
+	ret := &LockedValue{o: o}
+	return ret
+}
+func (l *LockedValue) Load() interface{} {
+	l.lock.RLock()
+	defer l.lock.RUnlock()
+
+	return l.o
+}
+
+func (l *LockedValue) Store(o interface{}) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	l.o = o
 }
