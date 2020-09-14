@@ -33,7 +33,7 @@ type KeyValues interface {
 }
 
 type Formatter interface {
-	//将日志keyValues格式化
+	// 将日志keyValues格式化，并输出到writer，注意writer为配置给logging的对应级别writer。
 	Format(writer io.Writer, keyValues KeyValues) error
 }
 

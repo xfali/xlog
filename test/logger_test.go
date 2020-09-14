@@ -75,6 +75,7 @@ func TestLoggerf(t *testing.T) {
 			t.Log("exit: ", i)
 		})))
 		log := xlog.GetLogger()
+		xlog.SetSeverityLevel(xlog.DEBUG)
 		defer func() {
 			v := recover()
 			if kvs, ok := v.(xlog.KeyValues); ok {

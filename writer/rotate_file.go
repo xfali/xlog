@@ -20,8 +20,11 @@ import (
 type RotateFrequency = time.Duration
 
 const (
+	// 仅使用一个文件记录日志
 	RotateNone      RotateFrequency = 0
+	// 每天凌晨滚动文件
 	RotateEveryDay  RotateFrequency = time.Hour * 24
+	// 每小时整点时滚动文件
 	RotateEveryHour RotateFrequency = time.Hour
 	// WARNING: for test only!
 	RotateEveryMinute RotateFrequency = time.Minute
