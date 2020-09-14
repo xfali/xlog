@@ -11,7 +11,7 @@ import (
 )
 
 func a() {
-	xlog.Info("test")
+	xlog.Infoln("test")
 }
 
 func TestLog(t *testing.T) {
@@ -23,12 +23,9 @@ func TestLog(t *testing.T) {
 
 func TestLogPanic(t *testing.T) {
 	defer func() {
-		r := recover()
-		t.Log(r)
-		if s, ok := r.(string); ok {
-			if s != "this is a test" {
-				t.Fatal(`expect "this is a test", but get `, r)
-			}
+		v := recover()
+		if kvs, ok := v.(xlog.KeyValues); ok {
+			t.Log("recover panic !", kvs.GetAll())
 		} else {
 			t.Fatal("panic type is not string")
 		}

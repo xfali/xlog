@@ -12,20 +12,24 @@ import (
 
 func TestLoggerln(t *testing.T) {
 	t.Run("reset logging", func(t *testing.T) {
+		xlog.ResetFactory(xlog.NewFactory(
+			xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+				t.Log("exit: ", i)
+			}))))
 		log := xlog.GetLogger()
 
 		log.Infoln("test")
 
 		logging := xlog.NewLogging()
 		logging.SetSeverityLevel(xlog.WARN)
-		xlog.ResetFactoryLogging(logging)
+		xlog.ResetLogging(logging)
 		log.Infoln("test2")
 	})
 
 	t.Run("default", func(t *testing.T) {
 		// reset default init at first
 		// no fatal trace, do not exit
-		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+		xlog.ResetLogging(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		})))
 		log := xlog.GetLogger()
@@ -46,7 +50,7 @@ func TestLoggerln(t *testing.T) {
 	t.Run("exit and panic", func(t *testing.T) {
 		// reset default init at first
 		// no fatal trace, do not exit
-		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+		xlog.ResetLogging(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		}), xlog.SetPanicFunc(func(v interface{}) {
 			if kvs, ok := v.(xlog.KeyValues); ok {
@@ -67,7 +71,7 @@ func TestLoggerf(t *testing.T) {
 	t.Run("default", func(t *testing.T) {
 		// reset default init at first
 		// no fatal trace, do not exit
-		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+		xlog.ResetLogging(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		})))
 		log := xlog.GetLogger()
@@ -89,7 +93,7 @@ func TestLoggerf(t *testing.T) {
 	t.Run("exit and panic", func(t *testing.T) {
 		// reset default init at first
 		// no fatal trace, do not exit
-		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+		xlog.ResetLogging(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		}), xlog.SetPanicFunc(func(v interface{}) {
 			if kvs, ok := v.(xlog.KeyValues); ok {
@@ -110,7 +114,7 @@ func TestLogger(t *testing.T) {
 	t.Run("default", func(t *testing.T) {
 		// reset default init at first
 		// no fatal trace, do not exit
-		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+		xlog.ResetLogging(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		})))
 		log := xlog.GetLogger()
@@ -131,7 +135,7 @@ func TestLogger(t *testing.T) {
 	t.Run("exit and exit", func(t *testing.T) {
 		// reset default init at first
 		// no fatal trace, do not exit
-		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+		xlog.ResetLogging(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		}), xlog.SetPanicFunc(func(v interface{}) {
 			if kvs, ok := v.(xlog.KeyValues); ok {
@@ -160,7 +164,7 @@ func TestMutableLoggerln(t *testing.T) {
 
 		logging := xlog.NewLogging()
 		logging.SetSeverityLevel(xlog.WARN)
-		xlog.ResetFactoryLogging(logging)
+		xlog.ResetLogging(logging)
 		log.Infoln("test2")
 	})
 
@@ -189,7 +193,7 @@ func TestMutableLoggerln(t *testing.T) {
 	t.Run("exit and panic", func(t *testing.T) {
 		// reset default init at first
 		// no fatal trace, do not exit
-		xlog.Init(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
+		xlog.ResetLogging(xlog.NewLogging(xlog.SetFatalNoTrace(true), xlog.SetExitFunc(func(i int) {
 			t.Log("exit: ", i)
 		}), xlog.SetPanicFunc(func(v interface{}) {
 			if kvs, ok := v.(xlog.KeyValues); ok {

@@ -222,9 +222,7 @@ func TestMultiWriterLog(t *testing.T) {
 		Block:         true,
 	})
 
-	logging := xlog.NewLogging(xlog.SetColorFlag(xlog.DisableColor))
-	logging.SetOutput(io.MultiWriter(os.Stdout, w))
-	xlog.Init(logging)
+	xlog.SetOutput(io.MultiWriter(os.Stdout, w))
 	var count int32 = 0
 	wait := sync.WaitGroup{}
 	wait.Add(20)
