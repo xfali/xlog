@@ -41,8 +41,8 @@ func (l *hookLevelLogging) SetSeverityLevel(severityLevel Level) {
 	l.logging.SetSeverityLevel(severityLevel)
 }
 
-func (l *hookLevelLogging) IsEnable(severityLevel Level) bool {
-	return l.logging.IsEnable(severityLevel)
+func (l *hookLevelLogging) IsEnabled(severityLevel Level) bool {
+	return l.logging.IsEnabled(severityLevel)
 }
 
 func (l *hookLevelLogging) SetOutput(w io.Writer) {

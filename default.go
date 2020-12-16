@@ -117,6 +117,10 @@ func (l *xlog) Fatalf(fmt string, args ...interface{}) {
 	l.logging.Logf(FATAL, l.depth, l.fields, fmt, args...)
 }
 
+func (l *xlog) IsEnabled(severityLevel Level) bool {
+	return l.logging.IsEnabled(severityLevel)
+}
+
 func (l *xlog) WithName(name string) Logger {
 	if l == nil {
 		return nil
@@ -254,6 +258,10 @@ func (l *mutableLog) Fatalln(args ...interface{}) {
 
 func (l *mutableLog) Fatalf(fmt string, args ...interface{}) {
 	l.getLogging().Logf(FATAL, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) IsEnabled(severityLevel Level) bool {
+	return l.getLogging().IsEnabled(severityLevel)
 }
 
 func (l *mutableLog) WithName(name string) Logger {

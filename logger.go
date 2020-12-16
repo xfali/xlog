@@ -56,6 +56,10 @@ type Logger interface {
 	// Fatal级别日志接口，注意会触发程序退出
 	LogFatal
 
+	// 测试参数日志级别的日志logger是否会输出
+	// 例如：日志级别限制为xlog.INFO，传入xlog.DEBUG返回false，传入xlog.WARN返回true
+	IsEnabled(severityLevel Level) bool
+
 	// 附加日志名称，注意会附加父Logger的名称，格式为：父Logger名称 + '.' + name
 	WithName(name string) Logger
 

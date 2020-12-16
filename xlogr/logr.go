@@ -45,7 +45,7 @@ func NewLogrWithLogging(logging xlog.Logging) logr.Logger {
 // flags might be used to set the logging verbosity and disable some info
 // logs.
 func (l *xlogr) Enabled() bool {
-	return l.logging.IsEnable(l.level)
+	return l.logging.IsEnabled(l.level)
 }
 
 // Info logs a non-error message with the given key/value pairs as context.

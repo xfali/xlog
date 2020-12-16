@@ -148,7 +148,7 @@ type Logging interface {
 	SetSeverityLevel(severityLevel Level)
 
 	// 判断参数级别是否会输出（线程安全）
-	IsEnable(severityLevel Level) bool
+	IsEnabled(severityLevel Level) bool
 
 	// 设置输出的Writer，注意该方法会将所有级别都配置为参数writer（线程安全）
 	SetOutput(w io.Writer)
@@ -314,7 +314,7 @@ func selectLevelColor(level Level) string {
 }
 
 func (l *logging) Logf(level Level, depth int, keyValues KeyValues, format string, args ...interface{}) {
-	if !l.IsEnable(level) {
+	if !l.IsEnabled(level) {
 		return
 	}
 
@@ -338,7 +338,7 @@ func (l *logging) Logf(level Level, depth int, keyValues KeyValues, format strin
 }
 
 func (l *logging) Log(level Level, depth int, keyValues KeyValues, args ...interface{}) {
-	if !l.IsEnable(level) {
+	if !l.IsEnabled(level) {
 		return
 	}
 
@@ -354,7 +354,7 @@ func (l *logging) Log(level Level, depth int, keyValues KeyValues, args ...inter
 }
 
 func (l *logging) Logln(level Level, depth int, keyValues KeyValues, args ...interface{}) {
-	if !l.IsEnable(level) {
+	if !l.IsEnabled(level) {
 		return
 	}
 
@@ -458,7 +458,7 @@ func (l *logging) SetSeverityLevel(severity Level) {
 	atomic.StoreInt32(&l.level, severity)
 }
 
-func (l *logging) IsEnable(severityLevel Level) bool {
+func (l *logging) IsEnabled(severityLevel Level) bool {
 	return atomic.LoadInt32(&l.level) >= severityLevel
 }
 
@@ -597,8 +597,8 @@ func SetSeverityLevel(severity Level) {
 }
 
 // 检查是否输出参数级别的日志
-func IsEnable(severityLevel Level) bool {
-	return defaultLogging.Load().(Logging).IsEnable(severityLevel)
+func IsEnabled(severityLevel Level) bool {
+	return defaultLogging.Load().(Logging).IsEnabled(severityLevel)
 }
 
 // 设置默认Logging的输出
