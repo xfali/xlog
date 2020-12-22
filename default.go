@@ -45,6 +45,10 @@ func newLogger(logging Logging, fields KeyValues, name ...string) *xlog {
 	}
 }
 
+func (l *xlog) DebugEnabled() bool {
+	return l.logging.IsEnabled(DEBUG)
+}
+
 func (l *xlog) Debug(args ...interface{}) {
 	l.logging.Log(DEBUG, l.depth, l.fields, args...)
 }
@@ -55,6 +59,10 @@ func (l *xlog) Debugln(args ...interface{}) {
 
 func (l *xlog) Debugf(fmt string, args ...interface{}) {
 	l.logging.Logf(DEBUG, l.depth, l.fields, fmt, args...)
+}
+
+func (l *xlog) InfoEnabled() bool {
+	return l.logging.IsEnabled(INFO)
 }
 
 func (l *xlog) Info(args ...interface{}) {
@@ -69,6 +77,10 @@ func (l *xlog) Infof(fmt string, args ...interface{}) {
 	l.logging.Logf(INFO, l.depth, l.fields, fmt, args...)
 }
 
+func (l *xlog) WarnEnabled() bool {
+	return l.logging.IsEnabled(WARN)
+}
+
 func (l *xlog) Warn(args ...interface{}) {
 	l.logging.Log(WARN, l.depth, l.fields, args...)
 }
@@ -79,6 +91,10 @@ func (l *xlog) Warnln(args ...interface{}) {
 
 func (l *xlog) Warnf(fmt string, args ...interface{}) {
 	l.logging.Logf(WARN, l.depth, l.fields, fmt, args...)
+}
+
+func (l *xlog) ErrorEnabled() bool {
+	return l.logging.IsEnabled(ERROR)
 }
 
 func (l *xlog) Error(args ...interface{}) {
@@ -93,6 +109,10 @@ func (l *xlog) Errorf(fmt string, args ...interface{}) {
 	l.logging.Logf(ERROR, l.depth, l.fields, fmt, args...)
 }
 
+func (l *xlog) PanicEnabled() bool {
+	return l.logging.IsEnabled(PANIC)
+}
+
 func (l *xlog) Panic(args ...interface{}) {
 	l.logging.Log(PANIC, l.depth, l.fields, args...)
 }
@@ -103,6 +123,10 @@ func (l *xlog) Panicln(args ...interface{}) {
 
 func (l *xlog) Panicf(fmt string, args ...interface{}) {
 	l.logging.Logf(PANIC, l.depth, l.fields, fmt, args...)
+}
+
+func (l *xlog) FatalEnabled() bool {
+	return l.logging.IsEnabled(FATAL)
 }
 
 func (l *xlog) Fatal(args ...interface{}) {
@@ -188,6 +212,10 @@ func (l *mutableLog) getLogging() Logging {
 	return l.logging.Load().(Logging)
 }
 
+func (l *mutableLog) DebugEnabled() bool {
+	return l.getLogging().IsEnabled(DEBUG)
+}
+
 func (l *mutableLog) Debug(args ...interface{}) {
 	l.getLogging().Log(DEBUG, l.depth, l.fields, args...)
 }
@@ -198,6 +226,10 @@ func (l *mutableLog) Debugln(args ...interface{}) {
 
 func (l *mutableLog) Debugf(fmt string, args ...interface{}) {
 	l.getLogging().Logf(DEBUG, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) InfoEnabled() bool {
+	return l.getLogging().IsEnabled(INFO)
 }
 
 func (l *mutableLog) Info(args ...interface{}) {
@@ -212,6 +244,10 @@ func (l *mutableLog) Infof(fmt string, args ...interface{}) {
 	l.getLogging().Logf(INFO, l.depth, l.fields, fmt, args...)
 }
 
+func (l *mutableLog) WarnEnabled() bool {
+	return l.getLogging().IsEnabled(WARN)
+}
+
 func (l *mutableLog) Warn(args ...interface{}) {
 	l.getLogging().Log(WARN, l.depth, l.fields, args...)
 }
@@ -222,6 +258,10 @@ func (l *mutableLog) Warnln(args ...interface{}) {
 
 func (l *mutableLog) Warnf(fmt string, args ...interface{}) {
 	l.getLogging().Logf(WARN, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) ErrorEnabled() bool {
+	return l.getLogging().IsEnabled(ERROR)
 }
 
 func (l *mutableLog) Error(args ...interface{}) {
@@ -236,6 +276,10 @@ func (l *mutableLog) Errorf(fmt string, args ...interface{}) {
 	l.getLogging().Logf(ERROR, l.depth, l.fields, fmt, args...)
 }
 
+func (l *mutableLog) PanicEnabled() bool {
+	return l.getLogging().IsEnabled(PANIC)
+}
+
 func (l *mutableLog) Panic(args ...interface{}) {
 	l.getLogging().Log(PANIC, l.depth, l.fields, args...)
 }
@@ -246,6 +290,10 @@ func (l *mutableLog) Panicln(args ...interface{}) {
 
 func (l *mutableLog) Panicf(fmt string, args ...interface{}) {
 	l.getLogging().Logf(PANIC, l.depth, l.fields, fmt, args...)
+}
+
+func (l *mutableLog) FatalEnabled() bool {
+	return l.getLogging().IsEnabled(FATAL)
 }
 
 func (l *mutableLog) Fatal(args ...interface{}) {

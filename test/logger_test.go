@@ -24,6 +24,16 @@ func TestLoggerln(t *testing.T) {
 		logging.SetSeverityLevel(xlog.WARN)
 		xlog.ResetLogging(logging)
 		log.Infoln("test2")
+
+		log2 := xlog.GetLogger()
+		if log2.InfoEnabled() {
+			t.Fatal("cannot info")
+		}
+		log2.Info("cannot be here")
+		if !log2.WarnEnabled() {
+			t.Fatal("can be warn")
+		}
+		log2.Warnln("must be here")
 	})
 
 	t.Run("default", func(t *testing.T) {
@@ -166,7 +176,16 @@ func TestMutableLoggerln(t *testing.T) {
 		logging := xlog.NewLogging()
 		logging.SetSeverityLevel(xlog.WARN)
 		xlog.ResetLogging(logging)
-		log.Infoln("test2")
+		log.Infoln("cannot be here")
+
+		if log.InfoEnabled() {
+			t.Fatal("cannot info")
+		}
+		log.Info("cannot be here")
+		if !log.WarnEnabled() {
+			t.Fatal("can be warn")
+		}
+		log.Warnln("must be here")
 	})
 
 	t.Run("default", func(t *testing.T) {
