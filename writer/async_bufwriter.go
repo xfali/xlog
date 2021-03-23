@@ -96,17 +96,19 @@ func NewAsyncBufferWriter(w io.Writer, closer Closer, c ...Config) *AsyncBufferL
 			select {
 			case <-l.stopChan:
 				return
-			case <-ticker.C:
-				l.Flush()
-			default:
-			}
-			select {
-			case <-l.stopChan:
-				return
 			case d, ok := <-l.logChan:
 				if ok {
 					l.writeLog(d)
 				}
+			case <-ticker.C:
+				l.Flush()
+			}
+			select {
+			case <-l.stopChan:
+				return
+			case <-ticker.C:
+				l.Flush()
+			default:
 			}
 		}
 	}()
@@ -114,11 +116,14 @@ func NewAsyncBufferWriter(w io.Writer, closer Closer, c ...Config) *AsyncBufferL
 }
 
 func (w *AsyncBufferLogWriter) Flush() error {
-	_, err := w.w.Write(w.logBuffer.Bytes())
-	if err != nil {
-		return err
+	d := w.logBuffer.Bytes()
+	if len(d) > 0 {
+		_, err := w.w.Write(d)
+		if err != nil {
+			return err
+		}
+		w.logBuffer.Reset()
 	}
-	w.logBuffer.Reset()
 	return nil
 }
 
