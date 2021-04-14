@@ -215,40 +215,67 @@ func TestRotateFilePartAndTimeWithZip(t *testing.T) {
 }
 
 func TestBufferedRotateFileWriterePartAndTimeWithZip(t *testing.T) {
-	w := writer.NewBufferedRotateFileWriter(&writer.BufferedRotateFile{
-		Path:            "./target/test.log",
-		MaxFileSize:     10,
-		RotateFrequency: writer.RotateEverySecond,
-		RotateFunc:      writer.ZipLogsAsync,
-	}, writer.Config{
-		FlushSize:     100,
-		BufferSize:    0,
-		FlushInterval: 1 * time.Second,
-		Block:         true,
+	t.Run("normal", func(t *testing.T) {
+		w := writer.NewBufferedRotateFileWriter(&writer.BufferedRotateFile{
+			Path:            "./target/test.log",
+			MaxFileSize:     1000,
+			RotateFrequency: writer.RotateEveryMinute,
+			RotateFunc:      writer.ZipLogsAsync,
+		}, writer.Config{
+			FlushSize:     1000,
+			BufferSize:    1024,
+			FlushInterval: 50 * time.Millisecond,
+			Block:         false,
+		})
+
+		for i:= 0; i<300; i++ {
+			time.Sleep(300 * time.Millisecond)
+			_, err := w.Write([]byte(fmt.Sprintf("[%d][%s]\n", i, time.Now().Format("2006-01-02-15-04-05"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		time.Sleep(time.Second)
+		w.Close()
 	})
 
-	var count int32 = 0
-	wait := sync.WaitGroup{}
-	wait.Add(10)
-	for i := 0; i < 10; i++ {
-		go func() {
-			defer wait.Done()
-			b := make([]byte, 10)
-			for j := 0; j < 10; j++ {
-				time.Sleep(300 * time.Millisecond)
-				v := atomic.AddInt32(&count, 1)
-				rand.Read(b)
-				_, err := w.Write([]byte(fmt.Sprintf("[%d][%s][%s]\n", v, time.Now().Format("2006-01-02-15-04-05"), base64.StdEncoding.EncodeToString(b))))
-				if err != nil {
-					t.Fatal(err)
-				}
-			}
-		}()
-	}
+	t.Run("file test", func(t *testing.T) {
+		w := writer.NewBufferedRotateFileWriter(&writer.BufferedRotateFile{
+			Path:            "./target/test.log",
+			MaxFileSize:     10,
+			RotateFrequency: writer.RotateEverySecond,
+			RotateFunc:      writer.ZipLogsAsync,
+		}, writer.Config{
+			FlushSize:     100,
+			BufferSize:    0,
+			FlushInterval: 1 * time.Second,
+			Block:         true,
+		})
 
-	wait.Wait()
-	w.Close()
-	t.Log(count)
+		var count int32 = 0
+		wait := sync.WaitGroup{}
+		wait.Add(10)
+		for i := 0; i < 10; i++ {
+			go func() {
+				defer wait.Done()
+				b := make([]byte, 10)
+				for j := 0; j < 10; j++ {
+					time.Sleep(300 * time.Millisecond)
+					v := atomic.AddInt32(&count, 1)
+					rand.Read(b)
+					_, err := w.Write([]byte(fmt.Sprintf("[%d][%s][%s]\n", v, time.Now().Format("2006-01-02-15-04-05"), base64.StdEncoding.EncodeToString(b))))
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+			}()
+		}
+
+		wait.Wait()
+		time.Sleep(time.Second)
+		w.Close()
+		t.Log(count)
+	})
 }
 
 func TestMultiWriterLog(t *testing.T) {

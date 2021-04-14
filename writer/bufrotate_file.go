@@ -7,6 +7,7 @@ package writer
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -40,7 +42,7 @@ func NewBufferedRotateFileWriter(f *BufferedRotateFile, config ...Config) io.Wri
 		return nil
 	}
 
-	return NewAsyncWriter(f, f.Close, conf.BufferSize, conf.Block)
+	return f
 }
 
 type BufferedRotateFile struct {
@@ -58,6 +60,12 @@ type BufferedRotateFile struct {
 	// 滚动的时间间隔
 	rotateDuration time.Duration
 
+	stopChan chan struct{}
+	logChan  chan []byte
+	block    bool
+	wait     sync.WaitGroup
+	once     sync.Once
+
 	timer      *time.Timer
 	fileName   string
 	dir        string
@@ -71,6 +79,17 @@ type BufferedRotateFile struct {
 }
 
 func (f *BufferedRotateFile) Open(conf Config) error {
+	var logChan chan []byte
+	// Channel without buffer
+	if conf.BufferSize <= 0 {
+		logChan = make(chan []byte)
+	} else {
+		logChan = make(chan []byte, conf.BufferSize)
+	}
+	f.block = conf.Block
+	f.logChan = logChan
+	f.stopChan = make(chan struct{})
+
 	if f.MaxFileSize == 0 {
 		// no limit
 		f.MaxFileSize = math.MaxInt64
@@ -105,7 +124,45 @@ func (f *BufferedRotateFile) Open(conf Config) error {
 		f.setFrequency(f.RotateFrequency)
 		f.setTimer()
 	}
-	return f.calcPart()
+	err = f.calcPart()
+	if err == nil {
+		f.wait.Add(1)
+		go func() {
+			ticker := time.NewTicker(conf.FlushInterval)
+			defer ticker.Stop()
+			defer f.wait.Done()
+			defer func() {
+				select {
+				case d, ok := <-f.logChan:
+					if ok {
+						f.tryWrite(d)
+					}
+				default:
+				}
+				f.writeFile()
+			}()
+			for {
+				select {
+				case <-f.stopChan:
+					return
+				case d, ok := <-f.logChan:
+					if ok {
+						f.tryWrite(d)
+					}
+				case <-ticker.C:
+					f.writeFile()
+				}
+				select {
+				case <-f.stopChan:
+					return
+				case <-ticker.C:
+					f.writeFile()
+				default:
+				}
+			}
+		}()
+	}
+	return err
 }
 
 func (f *BufferedRotateFile) setTimer() {
@@ -119,6 +176,24 @@ func (f *BufferedRotateFile) setTimer() {
 }
 
 func (f *BufferedRotateFile) Write(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, nil
+	}
+
+	if f.block {
+		f.logChan <- data
+		return len(data), nil
+	} else {
+		select {
+		case f.logChan <- data:
+			return len(data), nil
+		default:
+			return 0, errors.New("write log failed ")
+		}
+	}
+}
+
+func (f *BufferedRotateFile) tryWrite(data []byte) (int, error) {
 	if len(data) == 0 {
 		return 0, nil
 	}
@@ -147,6 +222,12 @@ func (f *BufferedRotateFile) Write(data []byte) (int, error) {
 }
 
 func (f *BufferedRotateFile) writeFile() (int, error) {
+	if f.file == nil {
+		return 0, errors.New("file not opened. ")
+	}
+	if f.buf.Len() == 0 {
+		return 0, nil
+	}
 	defer f.buf.Reset()
 	n, err := f.file.Write(f.buf.Bytes())
 	f.curSize += int64(n)
@@ -252,14 +333,17 @@ func (f *BufferedRotateFile) nextTime() time.Time {
 }
 
 func (f *BufferedRotateFile) Close() error {
-	f.writeFile()
+	f.once.Do(func() {
+		close(f.stopChan)
+		f.wait.Wait()
 
-	if f.timer != nil {
-		f.timer.Stop()
-	}
-	if f.file != nil {
-		return f.file.Close()
-	}
+		if f.timer != nil {
+			f.timer.Stop()
+		}
+		if f.file != nil {
+			f.file.Close()
+		}
+	})
 	return nil
 }
 
