@@ -7,6 +7,7 @@ package writer
 
 import (
 	"encoding/base64"
+	"fmt"
 	"github.com/xfali/xlog"
 	"github.com/xfali/xlog/value"
 	"github.com/xfali/xlog/writer"
@@ -201,6 +202,43 @@ func TestRotateFilePartAndTimeWithZip(t *testing.T) {
 				atomic.AddInt32(&count, 1)
 				rand.Read(b)
 				_, err := w.Write([]byte(strconv.Itoa(int(count)) + base64.StdEncoding.EncodeToString(b) + "\n"))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+		}()
+	}
+
+	wait.Wait()
+	w.Close()
+	t.Log(count)
+}
+
+func TestBufferedRotateFileWriterePartAndTimeWithZip(t *testing.T) {
+	w := writer.NewBufferedRotateFileWriter(&writer.BufferedRotateFile{
+		Path:            "./target/test.log",
+		MaxFileSize:     10,
+		RotateFrequency: writer.RotateEverySecond,
+		RotateFunc:      writer.ZipLogsAsync,
+	}, writer.Config{
+		FlushSize:     100,
+		BufferSize:    0,
+		FlushInterval: 1 * time.Second,
+		Block:         true,
+	})
+
+	var count int32 = 0
+	wait := sync.WaitGroup{}
+	wait.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wait.Done()
+			b := make([]byte, 10)
+			for j := 0; j < 10; j++ {
+				time.Sleep(300 * time.Millisecond)
+				v := atomic.AddInt32(&count, 1)
+				rand.Read(b)
+				_, err := w.Write([]byte(fmt.Sprintf("[%d][%s][%s]\n", v, time.Now().Format("2006-01-02-15-04-05"), base64.StdEncoding.EncodeToString(b))))
 				if err != nil {
 					t.Fatal(err)
 				}
