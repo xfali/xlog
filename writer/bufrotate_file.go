@@ -132,12 +132,9 @@ func (f *BufferedRotateFile) Open(conf Config) error {
 			defer ticker.Stop()
 			defer f.wait.Done()
 			defer func() {
-				select {
-				case d, ok := <-f.logChan:
-					if ok {
-						f.tryWrite(d)
-					}
-				default:
+				size := len(f.logChan)
+				for i := 0; i < size; i++ {
+					f.tryWrite(<-f.logChan)
 				}
 				f.writeFile()
 			}()
