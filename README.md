@@ -1,6 +1,7 @@
 # xlog
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/xfali/xlog)](https://goreportcard.com/report/github.com/xfali/xlog)
+[![Go Reference](https://pkg.go.dev/badge/github.com/xfali/xlog.svg)](https://pkg.go.dev/github.com/xfali/xlog)
 [![Build status](https://ci.appveyor.com/api/projects/status/ajcpxxgvp10n6dmp?svg=true)](https://ci.appveyor.com/project/xfali/xlog)
 
 xlog是一个go日志框架，提供简单易用的日志[API](logger.go)。
