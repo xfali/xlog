@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -42,8 +43,10 @@ const (
 	CallerShortFunc = 1 << 2
 	//显示完整函数名
 	CallerLongFunc = 1 << 3
+	//显示简单函数名
+	CallerSimpleFunc = 1 << 4
 	//func mask
-	CallerFuncMask = 3 << 2
+	CallerFuncMask = 7 << 2
 )
 
 const (
@@ -189,7 +192,7 @@ func NewLogging(opts ...LoggingOpt) Logging {
 	ret := &logging{
 		timeFormatter:   TimeFormat,
 		callerFormatter: CallerFormat,
-		exitFunc:        os.Exit,
+		exitFunc:        defaultExit,
 		panicFunc:       defaultPanic,
 		//formatter:     nil,
 		colorFlag:    DefaultColorFlag,
@@ -237,6 +240,8 @@ func (l *logging) getCaller(depth int) string {
 				if idx != -1 && idx < (len(funcName)-1) {
 					funcName = funcName[idx+1:]
 				}
+			} else if (l.fileFlag & CallerSimpleFunc) != 0 {
+				funcName = simpleFuncName(funcName)
 			}
 		}
 		return l.callerFormatter(file, line, funcName)
@@ -561,8 +566,42 @@ func SetPanicFunc(f PanicFunc) func(*logging) {
 	}
 }
 
+func defaultExit(code int) {
+	pid := os.Getpid()
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		os.Exit(code)
+	} else {
+		if err = p.Signal(os.Interrupt); err != nil {
+			// Per https://golang.org/pkg/os/#Signal, “Interrupt is not implemented on
+			// Windows; using it with os.Process.Signal will return an error.”
+			// Fall back to Kill instead.
+			if err = p.Signal(syscall.SIGTERM); err != nil {
+				if err = p.Kill(); err != nil {
+					os.Exit(code)
+				}
+			}
+		}
+	}
+}
+
 func defaultPanic(v interface{}) {
 	panic(v)
+}
+
+func simpleFuncName(funcName string) string {
+	segs := strings.Split(funcName, "/")
+	buf := strings.Builder{}
+	buf.Grow(len(funcName) / 2)
+	size := len(segs) - 1
+	for i := 0; i < size; i++ {
+		if len(segs[i]) > 0 {
+			buf.WriteString(segs[i][:1])
+			buf.WriteString(".")
+		}
+	}
+	buf.WriteString(segs[size])
+	return buf.String()
 }
 
 // 配置内置Logging实现的颜色的标志，有AutoColor、DisableColor、ForceColor

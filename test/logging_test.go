@@ -7,7 +7,11 @@ package test
 
 import (
 	"github.com/xfali/xlog"
+	"os"
+	"os/signal"
+	"syscall"
 	"testing"
+	"time"
 )
 
 func TestLoggingf(t *testing.T) {
@@ -38,14 +42,27 @@ func TestLogging(t *testing.T) {
 
 func TestLoggingln(t *testing.T) {
 	//l := xlog.NewLogging(xlog.SetCallerFlag(xlog.LongFile))
-	l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile|xlog.CallerLongFunc), xlog.SetExitFunc(func(i int) {
-		t.Log("exit: ", i)
-	}))
-	l.Logln(xlog.DEBUG, 0, nil, "DEBUG", " test")
-	l.Logln(xlog.INFO, 0, nil, "INFO", " test")
-	l.Logln(xlog.WARN, 0, nil, "WARN", " test")
-	l.Logln(xlog.ERROR, 0, nil, "ERROR", " test")
-	l.Logln(xlog.FATAL, 0, nil, "FATAL", " test")
+	t.Run("long func", func(t *testing.T) {
+		l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile|xlog.CallerLongFunc), xlog.SetExitFunc(func(i int) {
+			t.Log("exit: ", i)
+		}))
+		l.Logln(xlog.DEBUG, 0, nil, "DEBUG", " test")
+		l.Logln(xlog.INFO, 0, nil, "INFO", " test")
+		l.Logln(xlog.WARN, 0, nil, "WARN", " test")
+		l.Logln(xlog.ERROR, 0, nil, "ERROR", " test")
+		l.Logln(xlog.FATAL, 0, nil, "FATAL", " test")
+	})
+
+	t.Run("simple func", func(t *testing.T) {
+		l := xlog.NewLogging(xlog.SetCallerFlag(xlog.CallerLongFile|xlog.CallerSimpleFunc), xlog.SetExitFunc(func(i int) {
+			t.Log("exit: ", i)
+		}))
+		l.Logln(xlog.DEBUG, 0, nil, "DEBUG", " test")
+		l.Logln(xlog.INFO, 0, nil, "INFO", " test")
+		l.Logln(xlog.WARN, 0, nil, "WARN", " test")
+		l.Logln(xlog.ERROR, 0, nil, "ERROR", " test")
+		l.Logln(xlog.FATAL, 0, nil, "FATAL", " test")
+	})
 }
 
 func TestLoggingWithFormat(t *testing.T) {
@@ -66,6 +83,28 @@ func TestLoggingWithCloneAndFormat(t *testing.T) {
 	l.Logln(xlog.ERROR, 0, xlog.NewKeyValues("int", 1, "string", "2"), "ERROR", " test")
 	l = l.Clone()
 	l.Logln(xlog.ERROR, 0, xlog.NewKeyValues("int", 1, "string", "2"), "Clone ERROR", " test")
+}
+
+func TestLoggingFatal(t *testing.T) {
+	go func() {
+		time.Sleep(3 * time.Second)
+		xlog.Fatalln("test")
+	}()
+	var (
+		ch = make(chan os.Signal, 1)
+	)
+	signal.Notify(ch, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
+	for {
+		si := <-ch
+		switch si {
+		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			time.Sleep(100 * time.Millisecond)
+			return
+		case syscall.SIGHUP:
+		default:
+			return
+		}
+	}
 }
 
 func TestLoggingHook(t *testing.T) {
