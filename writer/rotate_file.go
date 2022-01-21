@@ -319,6 +319,7 @@ func compress(file string, w *zip.Writer) error {
 		if err != nil {
 			return err
 		}
+		header.Method = zip.Deflate
 		wh, err := w.CreateHeader(header)
 		if err != nil {
 			return err
